@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mera Secure 200GB Cloud</title>
-    <!-- AWS SDK for Storj & Supabase JS for Secure Login -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -24,6 +23,11 @@
         .back-btn { background: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; }
+
+        /* POPUP MODAL STYLES FOR IMAGE PREVIEW */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
+        .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -31,7 +35,6 @@
 <div class="container">
     <h1>☁️ Personal Secure Cloud Dashboard</h1>
     
-    <!-- STEP 1: LOGIN SYSTEM -->
     <div id="loginSection">
         <div class="form-group">
             <label>Username:</label>
@@ -44,7 +47,6 @@
         <button onclick="handleLogin()">Login to Cloud</button>
     </div>
 
-    <!-- STEP 2: ACCOUNT CHUNNE KA MENU -->
     <div id="cloudInterface">
         <button class="back-btn" onclick="logout()">Logout</button>
         <h2>Welcome Back!</h2>
@@ -64,7 +66,6 @@
         </div>
     </div>
 
-    <!-- STEP 3: FILE MANAGER -->
     <div id="fileManager">
         <div class="account-bar">
             <strong id="activeAccountTitle">Connected: None</strong>
@@ -78,6 +79,11 @@
         <h3>Aapki Files:</h3>
         <ul id="listFiles" class="file-list"></ul>
     </div>
+</div>
+
+<div id="previewModal" class="modal">
+    <span class="close-modal" onclick="closePreview()">&times;</span>
+    <img class="modal-content" id="previewImg" src="">
 </div>
 
 <script>
@@ -156,20 +162,13 @@ function loadFiles() {
         data.Contents.forEach(function(content) {
             const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: content.Key, Expires: 3600 });
             
-            // Google Docs Viewer Link to bypass CORS and force view online
-            const googleViewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(url) + "&embedded=true";
-
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
                 <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
                 <div class="btn-group">
-                    <!-- VIEW BUTTON: Opens online without downloading -->
-                    <a href="${googleViewerUrl}" target="_blank" rel="noopener noreferrer">
-                        <button class="download-btn" style="background: #3b82f6;">View</button>
-                    </a>
+                    <button class="download-btn" style="background: #3b82f6;" onclick="openPreview('${url}')">View</button>
                     
-                    <!-- DOWNLOAD BUTTON: Saves straight to device folder -->
                     <a href="${url}" download="${content.Key}">
                         <button class="download-btn" style="background: #10b981;">Download</button>
                     </a>
@@ -178,6 +177,18 @@ function loadFiles() {
             fileList.appendChild(li);
         });
     });
+}
+
+// Inline Preview Logic
+function openPreview(url) {
+    const modal = document.getElementById('previewModal');
+    const modalImg = document.getElementById('previewImg');
+    modal.style.display = "flex";
+    modalImg.src = url;
+}
+
+function closePreview() {
+    document.getElementById('previewModal').style.display = "none";
 }
 
 function uploadFile() {
