@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mera Secure 200GB Cloud</title>
+    <!-- AWS SDK for Storj & Supabase JS for Secure Login -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -18,10 +19,11 @@
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; align-items: center; }
-        .download-btn { background: #10b981; padding: 6px 12px; font-size: 14px; width: auto; margin: 0; }
+        .download-btn { padding: 6px 14px; font-size: 14px; width: auto; margin: 0; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
         .back-btn { background: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-group { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -29,6 +31,7 @@
 <div class="container">
     <h1>☁️ Personal Secure Cloud Dashboard</h1>
     
+    <!-- STEP 1: LOGIN SYSTEM -->
     <div id="loginSection">
         <div class="form-group">
             <label>Username:</label>
@@ -41,6 +44,7 @@
         <button onclick="handleLogin()">Login to Cloud</button>
     </div>
 
+    <!-- STEP 2: ACCOUNT CHUNNE KA MENU -->
     <div id="cloudInterface">
         <button class="back-btn" onclick="logout()">Logout</button>
         <h2>Welcome Back!</h2>
@@ -60,6 +64,7 @@
         </div>
     </div>
 
+    <!-- STEP 3: FILE MANAGER -->
     <div id="fileManager">
         <div class="account-bar">
             <strong id="activeAccountTitle">Connected: None</strong>
@@ -80,7 +85,6 @@
 const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
 
-// Error fix: Variable name changed to supabaseClient
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
@@ -92,7 +96,6 @@ async function handleLogin() {
 
     if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
 
-    // Fetch details from Supabase using secure client
     const { data, error } = await supabaseClient
         .from('cloud_users')
         .select('*')
@@ -104,7 +107,7 @@ async function handleLogin() {
         alert("Username ya Password galat hai!");
         console.error(error);
     } else {
-        allUserKeys = data.storj_keys; // 8 accounts ka data load ho gaya
+        allUserKeys = data.storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
     }
@@ -120,7 +123,6 @@ function switchAccount() {
     const accDetails = allUserKeys[selectedAcc];
     currentBucket = accDetails.bucket;
 
-    // Connect AWS SDK to selected Storj Account
     AWS.config.update({
         accessKeyId: accDetails.accessKey,
         secretAccessKey: accDetails.secretKey,
@@ -145,16 +147,6 @@ function loadFiles() {
             console.log(err);
             return;
         }
-        function loadFiles() {
-    s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        const fileList = document.getElementById('listFiles');
-        fileList.innerHTML = '';
-
-        if (err) {
-            alert("Storj connect karne me error aaya!");
-            console.log(err);
-            return;
-        }
         
         if(data.Contents.length === 0) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
@@ -162,28 +154,24 @@ function loadFiles() {
         }
 
         data.Contents.forEach(function(content) {
-            const url = s3.getSignedUrl('getObject', { 
-                Bucket: currentBucket, 
-                Key: content.Key, 
-                Expires: 3600
-            });
+            const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: content.Key, Expires: 3600 });
             
-            // GOOGLE DOCS VIEWER TRICK: CORS problem bypassed!
+            // Google Docs Viewer Link to bypass CORS and force view online
             const googleViewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(url) + "&embedded=true";
 
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
                 <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
-                <div style="display: flex; gap: 10px;">
-                    <!-- VIEW BUTTON: Opens in a clean online viewer -->
+                <div class="btn-group">
+                    <!-- VIEW BUTTON: Opens online without downloading -->
                     <a href="${googleViewerUrl}" target="_blank" rel="noopener noreferrer">
-                        <button class="download-btn" style="background: #3b82f6; width: auto; margin: 0;">View</button>
+                        <button class="download-btn" style="background: #3b82f6;">View</button>
                     </a>
                     
-                    <!-- DOWNLOAD BUTTON: Direct download link -->
+                    <!-- DOWNLOAD BUTTON: Saves straight to device folder -->
                     <a href="${url}" download="${content.Key}">
-                        <button class="download-btn" style="background: #10b981; width: auto; margin: 0;">Download</button>
+                        <button class="download-btn" style="background: #10b981;">Download</button>
                     </a>
                 </div>
             `;
