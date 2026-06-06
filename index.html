@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
         h1 { text-align: center; color: #1e3a8a; margin-bottom: 25px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; }
@@ -29,137 +29,46 @@
         .storage-status-bar { background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #0369a1; margin-top: 15px; text-align: right; }
 
         /* --- PREMIUM SECTION HEADING --- */
-        .section-heading {
-            font-size: 20px;
-            color: #1e293b;
-            font-weight: 700;
-            margin: 30px 0 15px 0;
-            padding-left: 12px;
-            border-left: 4px solid #2563eb;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-        }
+        .section-heading { font-size: 20px; color: #1e293b; font-weight: 700; margin: 30px 0 15px 0; padding-left: 12px; border-left: 4px solid #2563eb; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; }
 
         /* --- BUTTON STATES --- */
-        button { 
-            background: #2563eb !important; 
-            color: #ffffff !important; 
-            border: 2px solid #2563eb !important; 
-            padding: 12px 20px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            width: 100%; 
-            margin-top: 10px; 
-            font-weight: bold;
-            transition: all 0.05s ease-in-out; 
-            outline: none;
-            -webkit-tap-highlight-color: transparent; 
-        }
+        button { background: #2563eb !important; color: #ffffff !important; border: 2px solid #2563eb !important; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; font-weight: bold; transition: all 0.05s ease-in-out; outline: none; -webkit-tap-highlight-color: transparent; }
         button:hover { background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
-        button:active { 
-            background: #ffffff !important; 
-            color: #2563eb !important; 
-            border-color: #2563eb !important;
-            transform: scale(0.97); 
-        }
+        button:active { background: #ffffff !important; color: #2563eb !important; border-color: #2563eb !important; transform: scale(0.97); }
 
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         
         /* --- FILE & FOLDER ITEM LAYOUT --- */
-        .file-item { 
-            display: flex; 
-            justify-content: space-between; 
-            background: #f9fafb; 
-            padding: 10px 15px; 
-            border: 1px solid #e5e7eb; 
-            border-radius: 8px; 
-            margin-bottom: 10px; 
-            align-items: center; 
-        }
-        .file-item.folder-row-style {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            cursor: pointer;
-        }
-        .file-item.folder-row-style:hover {
-            background: #f1f5f9;
-        }
-        .file-info-zone {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            max-width: 55%;
-        }
+        .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; align-items: center; position: relative; }
+        .file-item.folder-row-style { background: #f8fafc; border-color: #cbd5e1; cursor: pointer; }
+        .file-item.folder-row-style:hover { background: #f1f5f9; }
+        .file-info-zone { display: flex; align-items: center; gap: 12px; max-width: 75%; }
         
-        .file-thumbnail {
-            width: 42px;
-            height: 42px;
-            border-radius: 6px;
-            object-fit: cover;
-            background: #e2e8f0;
-            border: 1px solid #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #475569;
-            flex-shrink: 0;
-        }
-        .file-name-text {
-            font-size: 14px;
-            color: #334155;
-            font-weight: 500;
-            word-break: break-all;
-        }
+        /* SLEEK PREMIUM REPLACEMENT FOR RECTANGLE BOXES */
+        .folder-svg-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; fill: #3b82f6; }
+        .file-thumbnail { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; background: #e2e8f0; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #475569; flex-shrink: 0; }
+        .file-name-text { font-size: 14px; color: #334155; font-weight: 500; word-break: break-all; }
         
-        /* --- COMPACT BUTTONS --- */
-        .download-btn { 
-            padding: 5px 10px !important; 
-            font-size: 12px !important;    
-            width: auto !important; 
-            margin: 0 !important; 
-            border-radius: 4px !important; 
-            cursor: pointer; 
-            font-weight: 600 !important;
-            transition: all 0.05s ease;
-            border: none !important;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .download-btn:active {
-            background: #ffffff !important;
-            color: #111827 !important;
-            transform: scale(0.94);
-        }
+        /* MODERN 3-DOT MENU STYLES */
+        .three-dot-btn { background: transparent !important; border: none !important; color: #64748b !important; font-size: 22px !important; font-weight: bold !important; cursor: pointer; width: auto !important; padding: 0 8px !important; margin: 0 !important; border-radius: 50%; display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; transition: background 0.2s; }
+        .three-dot-btn:hover { background: #e2e8f0 !important; color: #1e293b !important; }
+        
+        /* DROP DOWN MODAL MENU LAYER */
+        .context-menu-dropdown { display: none; position: absolute; right: 15px; top: 45px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 999; min-width: 150px; overflow: hidden; padding: 4px 0; }
+        .context-menu-item { padding: 10px 14px; font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; display: flex; align-items: center; transition: background 0.15s; }
+        .context-menu-item:hover { background: #f1f5f9; color: #2563eb; }
+        .context-menu-item.delete-action:hover { background: #fef2f2; color: #ef4444; }
 
-        .btn-cancel-override {
-            background: #ef4444 !important; 
-            color: #ffffff !important;
-            padding: 4px 10px !important; 
-            font-size: 12px !important; 
-            border-color: #ef4444 !important; 
-            width: auto !important; 
-            margin: 0 !important;
-            font-weight: 600 !important;
-            border-radius: 4px !important;
-        }
-
+        .btn-cancel-override { background: #ef4444 !important; color: #ffffff !important; padding: 4px 10px !important; font-size: 12px !important; border-color: #ef4444 !important; width: auto !important; margin: 0 !important; font-weight: 600 !important; border-radius: 4px !important; }
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
-        
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-group { display: flex; gap: 6px; align-items: center; }
 
-        /* LINEUP PROGRESS BAR STYLES */
         .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
-        /* PREVIEW POPUP MODAL (EXPANDED FOR MULTI-MEDIA AUDIO/VIDEO ENGINES) */
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; }
         .modal-content { max-width: 90%; max-height: 70%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); display: none; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
@@ -168,7 +77,7 @@
 </head>
 <body>
 
-<div class="container">
+<div class="container" onclick="closeAllOpenContextMenus()">
     <h1 id="mainDashboardTitle">☁️ Cloud Dashboard</h1>
     
     <div id="loginSection">
@@ -233,7 +142,6 @@
             <button onclick="uploadFiles()" style="width: auto; padding: 8px 20px;">Upload File(s)</button>
         </div>
         
-        <!-- NEW SEARCH AND FILTER PANELS -->
         <div class="search-filter-box">
             <input type="text" id="cloudSearchInput" placeholder="Files ya Folders search karein..." oninput="applySearchAndFilters()">
             <div class="filter-btn-group">
@@ -251,12 +159,10 @@
 
         <ul id="listFiles" class="file-list"></ul>
         
-        <!-- NEW STORAGE MONITOR BAR -->
         <div class="storage-status-bar" id="storageSummaryTracker">Total Files: 0 | Size: 0.00 MB</div>
     </div>
 </div>
 
-<!-- DYNAMIC PLAYER MODAL BOX -->
 <div id="previewModal" class="modal">
     <span class="close-modal" onclick="closePreview()">&times;</span>
     <div id="modalMediaTitle">File Name</div>
@@ -277,7 +183,7 @@ let activeUploadRequests = {};
 
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
-let localFilesCachedMemoryList = []; // Memory cache layer to handle high speed local searches
+let localFilesCachedMemoryList = []; 
 let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
@@ -372,7 +278,6 @@ function updateFolderDropdownUI() {
 
 function navigateToFolder(path) {
     currentDirectoryPath = path;
-    
     const pathBar = document.getElementById('folderPathBar');
     if(path === "") {
         pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span>`;
@@ -380,8 +285,6 @@ function navigateToFolder(path) {
         const cleanDisplayFolder = path.replace(/\/$/, "");
         pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span> / <strong style="color:#1e293b;">${cleanDisplayFolder}</strong>`;
     }
-    
-    // Clear search bar on folder change
     document.getElementById('cloudSearchInput').value = "";
     renderFilesFromCache();
 }
@@ -404,32 +307,176 @@ function isAudioFile(fileName) {
 function switchFilterTab(tabType) {
     currentSelectedActiveTabType = tabType;
     document.querySelectorAll('.filter-tab').forEach(btn => btn.classList.remove('active-tab'));
-    
     if(tabType === 'all') document.getElementById('tabAll').classList.add('active-tab');
     if(tabType === 'photos') document.getElementById('tabPhotos').classList.add('active-tab');
     if(tabType === 'videos') document.getElementById('tabVideos').classList.add('active-tab');
-    
     renderFilesFromCache();
 }
 
 function loadFiles() {
-    if (Object.keys(activeUploadRequests).length > 0) {
-        return; 
-    }
-
+    if (Object.keys(activeUploadRequests).length > 0) return;
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        if (err) {
-            alert("Storj connect karne me error aaya!");
-            console.log(err);
-            return;
-        }
-        // Cache full payload raw array to enable client side high speed filters
+        if (err) { alert("Storj connect karne me error aaya!"); return; }
         localFilesCachedMemoryList = data.Contents || [];
         renderFilesFromCache();
     });
 }
 
-// FULL MULTI-FUNCTIONAL CLIENT RENDERING MATRIX FOR SEARCH & SPACE EXTRACTION
+// TOGGLE CONTEXT MENUS MANAGEMENT
+function toggleContextMenu(event, menuId) {
+    event.stopPropagation();
+    const targetMenu = document.getElementById(menuId);
+    const wasOpen = targetMenu.style.display === "block";
+    closeAllOpenContextMenus();
+    if (!wasOpen) targetMenu.style.display = "block";
+}
+
+function closeAllOpenContextMenus() {
+    document.querySelectorAll('.context-menu-dropdown').forEach(menu => {
+        menu.style.display = "none";
+    });
+}
+
+// CORE ADVANCED DRIVE UTILITIES ENGINE FUNCTIONS (RENAME, COPY, MOVE, SHARE, INFO)
+function runRenameEngine(oldKey, isFolder = false) {
+    closeAllOpenContextMenus();
+    const promptText = isFolder ? "Folder ka naya naam likhein:" : "File ka naya naam (extension ke sath) likhein:";
+    const cleanOldName = oldKey.split('/').filter(Boolean).pop();
+    const newName = prompt("Rename Karein:", cleanOldName);
+    
+    if(!newName || newName.trim() === "" || newName === cleanOldName) return;
+
+    let newKey = "";
+    if(isFolder) {
+        newKey = newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/";
+        alert("Folder structure key logic updates sync ho rahi hain...");
+        renameFolderObjectsRecursive(oldKey, newKey);
+    } else {
+        const pathParts = oldKey.split('/');
+        pathParts[pathParts.length - 1] = newName.trim();
+        newKey = pathParts.join('/');
+        executeS3CopyMoveOperation(oldKey, newKey, true);
+    }
+}
+
+function runShareEngine(fileKey) {
+    closeAllOpenContextMenus();
+    const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 }); // 24 Hours Share Link
+    navigator.clipboard.writeText(url).then(() => {
+        alert("Success: Signed download link clipboard par copy ho gaya hai! (Valid for 24 hours)");
+    }).catch(err => {
+        alert("Link copy karne me dikkat aayi: " + url);
+    });
+}
+
+function runFileInfoEngine(key, sizeBytes, modifiedDate) {
+    closeAllOpenContextMenus();
+    const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
+    const extension = key.split('.').pop().toUpperCase();
+    
+    alert(`📄 [FILE DETAILS INFO]\n\n• Key Path: ${key}\n• File Size: ${sizeMB} MB (${sizeBytes} bytes)\n• Type/Ext: ${extension}\n• Last Modified: ${modifiedDate || 'N/A'}`);
+}
+
+function runFolderInfoEngine(folderName) {
+    closeAllOpenContextMenus();
+    let count = 0; let size = 0;
+    localFilesCachedMemoryList.forEach(item => {
+        if(item.Key.startsWith(folderName + "/")) { count++; size += item.Size; }
+    });
+    alert(`📁 [FOLDER DETAILS INFO]\n\n• Name: ${folderName}\n• Nested Items: ${count} files\n• Total Directory Size: ${(size/1024/1024).toFixed(2)} MB`);
+}
+
+function runMoveCopyEngine(oldKey, operationMode) { // operationMode: 'move' or 'copy'
+    closeAllOpenContextMenus();
+    let destinationFolder = prompt("Target destination folder ka naam likhein (Main branch ke liye 'root' likhein):");
+    if(destinationFolder === null) return;
+    
+    destinationFolder = destinationFolder.trim().replace(/[\/\\?%*:|"<>. ]/g, "_");
+    const filename = oldKey.split('/').pop();
+    
+    let newKey = (destinationFolder.toLowerCase() === "root" || destinationFolder === "") ? filename : destinationFolder + "/" + filename;
+    
+    if(oldKey === newKey) { alert("Error: Origin aur Target paths bilkul same hain!"); return; }
+    
+    executeS3CopyMoveOperation(oldKey, newKey, operationMode === 'move');
+}
+
+function executeS3CopyMoveOperation(sourceKey, targetKey, shouldDeleteOriginal = false) {
+    const copyParams = {
+        Bucket: currentBucket,
+        CopySource: encodeURIComponent(currentBucket + '/' + sourceKey),
+        Key: targetKey
+    };
+
+    s3.copyObject(copyParams, function(copyErr, copyData) {
+        if (copyErr) {
+            alert("Operation failed! Check console for metadata object naming issues.");
+            console.error(copyErr);
+            return;
+        }
+        if (shouldDeleteOriginal) {
+            s3.deleteObject({ Bucket: currentBucket, Key: sourceKey }, function(delErr) {
+                syncAndRefreshLocalState();
+            });
+        } else {
+            syncAndRefreshLocalState();
+        }
+    });
+}
+
+function renameFolderObjectsRecursive(oldFolderPrefix, newFolderPrefix) {
+    s3.listObjectsV2({ Bucket: currentBucket, Prefix: oldFolderPrefix }, function(err, data) {
+        if(err || !data.Contents) return;
+        let completed = 0;
+        const total = data.Contents.length;
+        if(total === 0) { syncAndRefreshLocalState(); return; }
+
+        data.Contents.forEach(item => {
+            const currentOldKey = item.Key;
+            const relativePart = currentOldKey.substring(oldFolderPrefix.length);
+            const targetNewKey = newFolderPrefix + relativePart;
+
+            s3.copyObject({
+                Bucket: currentBucket,
+                CopySource: encodeURIComponent(currentBucket + '/' + currentOldKey),
+                Key: targetNewKey
+            }, function() {
+                s3.deleteObject({ Bucket: currentBucket, Key: currentOldKey }, function() {
+                    completed++;
+                    if(completed === total) syncAndRefreshLocalState();
+                });
+            });
+        });
+    });
+}
+
+function runFolderDeleteEngine(folderPrefix) {
+    closeAllOpenContextMenus();
+    if(confirm(`🚨 WARNING: Kya aap sach me folder '${folderPrefix}' aur uske andar ka saari files hamesha ke liye udana chahte hain?`)) {
+        s3.listObjectsV2({ Bucket: currentBucket, Prefix: folderPrefix + "/" }, function(err, data) {
+            if(err || !data.Contents || data.Contents.length === 0) {
+                // If clean virtual slot, force pass standard check triggers
+                loadFiles(); return;
+            }
+            let deletedCount = 0;
+            const totalToKill = data.Contents.length;
+            data.Contents.forEach(obj => {
+                s3.deleteObject({ Bucket: currentBucket, Key: obj.Key }, function() {
+                    deletedCount++;
+                    if(deletedCount === totalToKill) syncAndRefreshLocalState();
+                });
+            });
+        });
+    }
+}
+
+function syncAndRefreshLocalState() {
+    s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
+        if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
+    });
+}
+
+// RENDER SCHEDULER IMPLEMENTATION WITHOUT ANY RECTANGLE "DIR" BOX OR PLAIN TEXT NAV LINK BUTTONS
 function renderFilesFromCache() {
     const fileList = document.getElementById('listFiles');
     const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
@@ -449,8 +496,6 @@ function renderFilesFromCache() {
 
     localFilesCachedMemoryList.forEach(function(content) {
         const key = content.Key;
-        
-        // Setup global folder map data layer tracking
         if(key.includes('/')) {
             const parts = key.split('/');
             const baseFolderName = parts[0];
@@ -460,65 +505,67 @@ function renderFilesFromCache() {
                 trackingSubFoldersInCurrentDir.add(baseFolderName);
             } else if(key.startsWith(currentDirectoryPath)) {
                 const relativePath = key.substring(currentDirectoryPath.length);
-                if(relativePath.length > 0) {
-                    itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
-                }
+                if(relativePath.length > 0) itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
             }
         } else {
-            if(currentDirectoryPath === "") {
-                itemsToRender.push({ type: 'file', data: content, displayKey: key });
-            }
+            if(currentDirectoryPath === "") itemsToRender.push({ type: 'file', data: content, displayKey: key });
         }
     });
 
     updateFolderDropdownUI();
 
-    // Render folder rows (filtered by search query if applicable)
+    // RENDER FOLDERS WITH THE NEW PREMIUM REPLACEMENT VECTOR DESIGNS
+    let uniqueIdCounter = 0;
     trackingSubFoldersInCurrentDir.forEach(folderName => {
         if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
-        
-        // Skip directory rows if user is hunting exclusively inside specific file types tabs
         if(currentSelectedActiveTabType !== 'all') return;
+
+        uniqueIdCounter++;
+        const currentMenuUniqueId = `folder_menu_${uniqueIdCounter}`;
 
         const li = document.createElement('li');
         li.className = 'file-item folder-row-style';
-        li.onclick = function() { navigateToFolder(folderName + "/"); };
+        li.setAttribute('onclick', `navigateToFolder('${folderName}/')`);
+        
         li.innerHTML = `
             <div class="file-info-zone">
-                <div class="file-thumbnail" style="background:#f1f5f9; font-size:11px; font-weight:bold;">DIR</div>
-                <div class="file-name-text" style="font-weight:bold; color:#1e293b;">
+                <svg class="folder-svg-icon" viewBox="0 0 24 24">
+                    <path d="M10 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
+                </svg>
+                <div class="file-name-text">
                     ${folderName} <br>
-                    <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder / Directory</span>
+                    <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder Directory</span>
                 </div>
             </div>
-            <div>
-                <strong style="color:#2563eb; font-size:13px; padding-right:10px;">Open ➔</strong>
+            <div style="position: relative;">
+                <button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button>
+                <div class="context-menu-dropdown" id="${currentMenuUniqueId}">
+                    <div class="context-menu-item" onclick="event.stopPropagation(); navigateToFolder('${folderName}/')">Open Folder</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${folderName}/', true)">Rename</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runFolderInfoEngine('${folderName}')">Folder Info</div>
+                    <div class="context-menu-item delete-action" onclick="event.stopPropagation(); runFolderDeleteEngine('${folderName}')">Delete</div>
+                </div>
             </div>
         `;
         fileList.appendChild(li);
     });
 
-    // Process file lists rendering layer
+    // RENDER RESTRUCTURING ACTIVE FILES LIST
     itemsToRender.forEach(function(item) {
+        uniqueIdCounter++;
         const content = item.data;
         const originalKey = content.Key;
         const displayLabel = item.displayKey;
+        const currentMenuUniqueId = `file_menu_${uniqueIdCounter}`;
         
-        // 1. Text Search Box filtration logic execution
         if(searchQuery !== "" && !displayLabel.toLowerCase().includes(searchQuery)) return;
-        
-        // 2. Type Tab filters filtration logic execution
         if(currentSelectedActiveTabType === 'photos' && !isImageFile(originalKey)) return;
         if(currentSelectedActiveTabType === 'videos' && !isVideoFile(originalKey)) return;
 
-        // Compile statistics counter variables values
         renderedFilesTotalCount++;
         renderedFilesTotalByteSize += content.Size;
 
         const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: originalKey, Expires: 3600 });
-        
-        const li = document.createElement('li');
-        li.className = 'file-item';
         
         let typeIconLabel = "FILE";
         if(isImageFile(originalKey)) typeIconLabel = "IMG";
@@ -530,6 +577,8 @@ function renderFilesFromCache() {
             iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
         }
 
+        const li = document.createElement('li');
+        li.className = 'file-item';
         li.innerHTML = `
             <div class="file-info-zone">
                 ${iconOrThumbnailHTML}
@@ -538,18 +587,25 @@ function renderFilesFromCache() {
                     <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
                 </div>
             </div>
-            <div class="btn-group">
-                <button class="download-btn" style="background: #3b82f6;" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View</button>
-                <a href="${url}" download="${displayLabel}" onclick="event.stopPropagation();">
-                    <button class="download-btn" style="background: #10b981;">Download</button>
-                </a>
-                <button class="download-btn" style="background: #ef4444;" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</button>
+            <div style="position: relative;">
+                <button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button>
+                <div class="context-menu-dropdown" id="${currentMenuUniqueId}">
+                    <div class="context-menu-item" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View / Play</div>
+                    <a href="${url}" download="${displayLabel}" style="text-decoration:none;" onclick="event.stopPropagation(); closeAllOpenContextMenus();">
+                        <div class="context-menu-item">Download</div>
+                    </a>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${originalKey}', false)">Rename</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'move')">Move To</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'copy')">Copy To</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runShareEngine('${originalKey}')">Share Link</div>
+                    <div class="context-menu-item" onclick="event.stopPropagation(); runFileInfoEngine('${originalKey}', ${content.Size}, '${content.LastModified}')">File Info</div>
+                    <div class="context-menu-item delete-action" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</div>
+                </div>
             </div>
         `;
         fileList.appendChild(li);
     });
 
-    // Update Live dynamic Storage status bar text
     const convertedMegaBytes = (renderedFilesTotalByteSize / 1024 / 1024).toFixed(2);
     document.getElementById('storageSummaryTracker').innerText = `Total Files: ${renderedFilesTotalCount} | Size: ${convertedMegaBytes} MB`;
 
@@ -558,19 +614,16 @@ function renderFilesFromCache() {
     }
 }
 
-function applySearchAndFilters() {
-    renderFilesFromCache();
-}
+function applySearchAndFilters() { renderFilesFromCache(); }
 
-// EXTENDED UNIVERSAL STREAMING MULTI-MEDIA VIEW SYSTEM
 function previewFileDirectly(fileKey) {
+    closeAllOpenContextMenus();
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('previewImg');
     const modalVid = document.getElementById('previewVideo');
     const modalAud = document.getElementById('previewAudio');
     const modalTitle = document.getElementById('modalMediaTitle');
     
-    // Completely clear out old streams from previous views initialization
     modalImg.src = ""; modalImg.style.display = "none";
     modalVid.src = ""; modalVid.style.display = "none";
     modalAud.src = ""; modalAud.style.display = "none";
@@ -579,31 +632,18 @@ function previewFileDirectly(fileKey) {
     modalTitle.innerText = shortTitleClean;
     
     s3.getObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-        if (err) {
-            alert("File preview load karne me dikkat aayi!");
-            console.log(err);
-            return;
-        }
-        
+        if (err) { alert("File preview load karne me dikkat aayi!"); return; }
         const blob = new Blob([data.Body], { type: data.ContentType });
         const blobUrl = URL.createObjectURL(blob);
         modal.style.display = "flex";
 
         if(isImageFile(fileKey)) {
-            modalImg.src = blobUrl;
-            modalImg.style.display = "block";
+            modalImg.src = blobUrl; modalImg.style.display = "block";
         } else if(isVideoFile(fileKey)) {
-            modalVid.src = blobUrl;
-            modalVid.style.display = "block";
-            modalVid.load();
-            modalVid.play().catch(e => console.log("Autoplay block text wrapper alert:", e));
+            modalVid.src = blobUrl; modalVid.style.display = "block"; modalVid.load(); modalVid.play().catch(e => console.log(e));
         } else if(isAudioFile(fileKey)) {
-            modalAud.src = blobUrl;
-            modalAud.style.display = "block";
-            modalAud.load();
-            modalAud.play().catch(e => console.log("Autoplay block text wrapper alert:", e));
+            modalAud.src = blobUrl; modalAud.style.display = "block"; modalAud.load(); modalAud.play().catch(e => console.log(e));
         } else {
-            // Fallback strategy alert for generic raw files download trigger requests
             modalTitle.innerText = shortTitleClean + " (Preview not available, download to view)";
             modalImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path><polyline points='14 2 14 8 20 8'></polyline></svg>";
             modalImg.style.display = "block";
@@ -614,38 +654,26 @@ function previewFileDirectly(fileKey) {
 function closePreview() {
     const modalVid = document.getElementById('previewVideo');
     const modalAud = document.getElementById('previewAudio');
-    
-    // Explicitly kill resource hooks inside runtime execution streams
-    if(modalVid) modalVid.pause();
-    if(modalAud) modalAud.pause();
-    
+    if(modalVid) modalVid.pause(); if(modalAud) modalAud.pause();
     document.getElementById('previewModal').style.display = "none";
 }
 
 function cancelUpload(uploadId) {
     const request = activeUploadRequests[uploadId];
     if (request) {
-        request.abort(); 
-        delete activeUploadRequests[uploadId];
-        const row = document.getElementById(uploadId);
-        if (row) row.remove();
-        
-        if (Object.keys(activeUploadRequests).length === 0) {
-            loadFiles();
-        }
+        request.abort(); delete activeUploadRequests[uploadId];
+        const row = document.getElementById(uploadId); if (row) row.remove();
+        if (Object.keys(activeUploadRequests).length === 0) loadFiles();
     }
 }
 
 function deleteFile(fileKey) {
-    if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
-        return;
-    }
+    closeAllOpenContextMenus();
+    if(Object.keys(activeUploadRequests).length > 0) { alert("Kripya pehle chal rahe uploads ko poora hone edin!"); return; }
     if(confirm("Kya aap sach me is file ko delete karna chahte hain?")) {
         s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-            if (err) { alert("Delete karne me error aaya!"); console.log(err); } 
-            else { 
-                // Immediate refresh mapping
+            if (err) { alert("Delete karne me error aaya!"); } 
+            else {
                 s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
                     if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
                 });
@@ -660,30 +688,21 @@ function uploadFiles() {
     if (files.length === 0) { alert("Pehle koi file select karein!"); return; }
 
     const fileList = document.getElementById('listFiles');
-    if(fileList.innerHTML.includes('Locker khali hai')) {
-        fileList.innerHTML = '';
-    }
+    if(fileList.innerHTML.includes('Locker khali hai')) fileList.innerHTML = '';
 
     const folderStrategy = document.getElementById('uploadFolderTarget').value;
     let targetPathPrefix = "";
 
     if (folderStrategy === 'existing') {
         const selectedExisting = document.getElementById('existingFolderSelect').value;
-        if(selectedExisting) {
-            targetPathPrefix = selectedExisting + "/";
-        }
+        if(selectedExisting) targetPathPrefix = selectedExisting + "/";
     } else if (folderStrategy === 'new') {
         let rawNewFolderName = document.getElementById('newFolderNameInput').value.trim();
         rawNewFolderName = rawNewFolderName.replace(/[\/\\?%*:|"<>. ]/g, "_");
-        if(!rawNewFolderName) {
-            alert("Kripya naye folder ka naam sahi se dalein!");
-            return;
-        }
+        if(!rawNewFolderName) { alert("Kripya naye folder ka naam sahi se dalein!"); return; }
         targetPathPrefix = rawNewFolderName + "/";
     } else {
-        if(currentDirectoryPath !== "") {
-            targetPathPrefix = currentDirectoryPath;
-        }
+        if(currentDirectoryPath !== "") targetPathPrefix = currentDirectoryPath;
     }
 
     Array.from(files).forEach((file) => {
@@ -718,29 +737,19 @@ function uploadFiles() {
             targetBtn.onclick = function() { cancelUpload(uploadId); };
         }
 
-        const options = { 
-            queueSize: 4,          
-            partSize: 5 * 1024 * 1024 
-        };
+        const options = { queueSize: 4, partSize: 5 * 1024 * 1024 };
 
         const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: cloudUploadFinalKey, Body: file }, options, function(err, data) {
             delete activeUploadRequests[uploadId];
-            const rowToRemove = document.getElementById(uploadId);
-            if (rowToRemove) rowToRemove.remove();
+            const rowToRemove = document.getElementById(uploadId); if (rowToRemove) rowToRemove.remove();
 
-            if (err) { 
-                if(err.code !== 'RequestAbortedError') {
-                    alert("Upload failed for: " + file.name);
-                    console.log(err);
-                }
-            }
+            if (err) { if(err.code !== 'RequestAbortedError') { alert("Upload failed for: " + file.name); } }
             
             if (Object.keys(activeUploadRequests).length === 0) {
                 document.getElementById('newFolderNameInput').value = "";
                 document.getElementById('uploadFolderTarget').value = "root";
                 toggleFolderInputStyle();
                 
-                // Re-sync memory map cache instantly upon complete payload stream uploads
                 s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
                     if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
                 });
