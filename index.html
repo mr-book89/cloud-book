@@ -152,12 +152,20 @@ function loadFiles() {
         }
 
         data.Contents.forEach(function(content) {
-            const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: content.Key, Expires: 3600 });
+            // Get Signed URL WITHOUT forcing download (forcing inline view)
+            const url = s3.getSignedUrl('getObject', { 
+                Bucket: currentBucket, 
+                Key: content.Key, 
+                Expires: 3600
+            });
+            
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
                 <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
-                <a href="${url}" target="_blank"><button class="download-btn">Download</button></a>
+                <div>
+                    <a href="${url}" target="_blank" rel="noopener noreferrer"><button class="download-btn" style="background: #3b82f6;">View / Open</button></a>
+                </div>
             `;
             fileList.appendChild(li);
         });
