@@ -14,7 +14,7 @@
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* --- SECTION HEADING --- */
+        /* --- PREMIUM SECTION HEADING --- */
         .section-heading {
             font-size: 20px;
             color: #1e293b;
@@ -28,7 +28,7 @@
             align-items: center;
         }
 
-        /* --- BUTTON STATES --- */
+        /* --- DYNAMIC BUTTON STYLES WITH TAP/BLINK ENGINE --- */
         button { 
             background: #2563eb !important; 
             color: #ffffff !important; 
@@ -55,7 +55,7 @@
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         
-        /* --- FILE ROW LAYOUT --- */
+        /* --- UPGRADED FILE ROW WITH IMAGE IMAGE VIEW --- */
         .file-item { 
             display: flex; 
             justify-content: space-between; 
@@ -65,15 +65,15 @@
             border-radius: 8px; 
             margin-bottom: 10px; 
             align-items: center; 
-            position: relative;
         }
         .file-info-zone {
             display: flex;
             align-items: center;
             gap: 12px;
-            max-width: 75%;
+            max-width: 60%;
         }
         
+        /* --- GOOGLE DRIVE MINI PHOTO THUMBNAIL STYLE --- */
         .file-thumbnail {
             width: 42px;
             height: 42px;
@@ -93,98 +93,40 @@
             font-weight: 500;
             word-break: break-all;
         }
-
-        /* --- THREE-DOT CONSOLE CONTAINER --- */
-        .three-dot-menu-container {
-            position: relative;
-        }
-        .three-dot-btn {
-            background: transparent !important;
-            color: #64748b !important;
-            border: none !important;
-            width: 36px !important;
-            height: 36px !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            font-size: 24px !important;
-            line-height: 36px !important;
-            border-radius: 50% !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.1s ease !important;
-        }
-        .three-dot-btn:hover {
-            background: #e2e8f0 !important;
-            color: #1e293b !important;
-        }
-
-        /* --- DROPDOWN ACTION MENU (TEXT ONLY STYLE) --- */
-        .action-dropdown-box {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 40px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 120px;
-            overflow: hidden;
-        }
-        .action-dropdown-box.show {
-            display: block;
-        }
-        .action-menu-item {
-            width: 100%;
-            padding: 11px 20px; /* Enhanced internal grid padded geometry */
-            font-size: 13px;
-            font-weight: 600;
-            text-align: left;
-            background: transparent !important;
-            border: none !important;
-            color: #475569 !important; /* Premium Slate Gray Text color */
-            margin: 0 !important;
-            border-radius: 0 !important;
-            display: block;
-            cursor: pointer;
-            box-sizing: border-box;
-            transition: background 0.1s ease;
-        }
-        .action-menu-item:hover {
-            background: #f1f5f9 !important;
-            color: #1e293b !important;
-        }
-        .action-menu-item.delete-item {
-            color: #ef4444 !important;
-            border-top: 1px solid #f1f5f9 !important;
-        }
-        .action-menu-item.delete-item:hover {
-            background: #fef2f2 !important;
-            color: #dc2626 !important;
-        }
         
-        .action-dropdown-box a {
-            text-decoration: none;
-            display: block;
-            width: 100%;
+        /* --- UTILITY BUTTONS (VIEW, DOWNLOAD, DELETE) --- */
+        .download-btn { 
+            padding: 6px 14px; 
+            font-size: 14px; 
+            width: auto; 
+            margin: 0; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.05s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .download-btn:active {
+            background: #ffffff !important;
+            color: #111827 !important;
+            border-color: #cbd5e1 !important;
+            transform: scale(0.94);
         }
 
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
+        .back-btn:active { background: #ffffff !important; color: #6b7280 !important; border-color: #6b7280 !important; }
         
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; align-items: center; }
 
         /* LINEUP PROGRESS BAR STYLES */
-        .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
+        .lineup-progress-container { width: 140px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
         /* PREVIEW POPUP MODAL */
-        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
         .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
     </style>
@@ -213,14 +155,14 @@
             <label>Kis Storj Account ka Storage chalana hai?</label>
             <select id="accountSelect" onchange="switchAccount()">
                 <option value="">-- Account Select Karein --</option>
-                <option value="acc1">Book 1</option>
-                <option value="acc2">Book 2</option>
-                <option value="acc3">Book 3</option>
-                <option value="acc4">Book 4</option>
-                <option value="acc5">Book 5</option>
-                <option value="acc6">Book 6</option>
-                <option value="acc7">Book 7</option>
-                <option value="acc8">Book 8</option>
+                <option value="acc1">Loading...</option>
+                <option value="acc2">Loading...</option>
+                <option value="acc3">Loading...</option>
+                <option value="acc4">Loading...</option>
+                <option value="acc5">Loading...</option>
+                <option value="acc6">Loading...</option>
+                <option value="acc7">Loading...</option>
+                <option value="acc8">Loading...</option>
             </select>
         </div>
     </div>
@@ -255,14 +197,6 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
-document.addEventListener('click', function(e) {
-    if (!e.target.classList.contains('three-dot-btn')) {
-        document.querySelectorAll('.action-dropdown-box').forEach(box => {
-            box.classList.remove('show');
-        });
-    }
-});
-
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
     const pass = document.getElementById('passInput').value;
@@ -283,10 +217,13 @@ async function handleLogin() {
         allUserKeys = data.storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
-        updateDropdownLabels(); 
+        
+        // FORCE JAVASCRIPT REWRITE: Changes display texts directly during active runtime to bypass browser cache
+        updateDropdownLabels();
     }
 }
 
+// Hard Overwrite Engine for perfect clean labels
 function updateDropdownLabels() {
     const selectBox = document.getElementById('accountSelect');
     if(selectBox) {
@@ -300,6 +237,7 @@ function updateDropdownLabels() {
             "acc7": "Book 7",
             "acc8": "Book 8"
         };
+        
         Array.from(selectBox.options).forEach(option => {
             if(customLabels[option.value]) {
                 option.text = customLabels[option.value];
@@ -328,6 +266,7 @@ function switchAccount() {
 
     s3 = new AWS.S3();
     
+    // Updates Title Box to reflect Book clean names directly
     const selectedText = document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
     document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
     
@@ -338,15 +277,6 @@ function switchAccount() {
 function isImageFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
-}
-
-function toggleMenu(e, menuId) {
-    e.stopPropagation(); 
-    document.querySelectorAll('.action-dropdown-box').forEach(box => {
-        if(box.id !== menuId) box.classList.remove('show');
-    });
-    const targetMenu = document.getElementById(menuId);
-    if(targetMenu) targetMenu.classList.toggle('show');
 }
 
 function loadFiles() {
@@ -376,9 +306,8 @@ function loadFiles() {
             return;
         }
 
-        data.Contents.forEach(function(content, index) {
+        data.Contents.forEach(function(content) {
             const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: content.Key, Expires: 3600 });
-            const dropdownId = 'drop_' + index;
             
             const li = document.createElement('li');
             li.className = 'file-item';
@@ -388,7 +317,6 @@ function loadFiles() {
                 iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
             }
 
-            // EMOJIS REMOVED: Pure text-based minimal vertical popup design
             li.innerHTML = `
                 <div class="file-info-zone">
                     ${iconOrThumbnailHTML}
@@ -397,15 +325,12 @@ function loadFiles() {
                         <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
                     </div>
                 </div>
-                <div class="three-dot-menu-container">
-                    <button class="three-dot-btn" onclick="toggleMenu(event, '${dropdownId}')">⋮</button>
-                    <div class="action-dropdown-box" id="${dropdownId}">
-                        <button class="action-menu-item" onclick="previewFileDirectly('${content.Key}')">View</button>
-                        <a href="${url}" download="${content.Key}">
-                            <button class="action-menu-item">Download</button>
-                        </a>
-                        <button class="action-menu-item delete-item" onclick="deleteFile('${content.Key}')">Delete</button>
-                    </div>
+                <div class="btn-group">
+                    <button class="download-btn" style="background: #3b82f6;" onclick="previewFileDirectly('${content.Key}')">View</button>
+                    <a href="${url}" download="${content.Key}">
+                        <button class="download-btn" style="background: #10b981;">Download</button>
+                    </a>
+                    <button class="download-btn" style="background: #ef4444;" onclick="deleteFile('${content.Key}')">Delete 🗑️</button>
                 </div>
             `;
             fileList.appendChild(li);
@@ -491,7 +416,7 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444; width:auto; margin:0;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
+                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
             </div>
         `;
         
