@@ -83,11 +83,13 @@
     <div id="loginSection">
         <div class="form-group">
             <label>Username:</label>
-            <input type="text" id="userInput" placeholder="Apna username dalein">
+            <!-- UPDATED PLACEHOLDER TO PLAIN USERNAME -->
+            <input type="text" id="userInput" placeholder="Username">
         </div>
         <div class="form-group">
             <label>Password:</label>
-            <input type="password" id="passInput" placeholder="Apna password dalein">
+            <!-- UPDATED PLACEHOLDER TO PLAIN PASSWORD -->
+            <input type="password" id="passInput" placeholder="Password">
         </div>
         <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
     </div>
@@ -294,6 +296,7 @@ function isImageFile(fileName) {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
 }
 
+// Function checking for common presentation/movie codecs
 function isVideoFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext);
@@ -338,7 +341,6 @@ function closeAllOpenContextMenus() {
 
 function runRenameEngine(oldKey, isFolder = false) {
     closeAllOpenContextMenus();
-    const promptText = isFolder ? "Folder ka naya naam likhein:" : "File ka naya naam (extension ke sath) likhein:";
     const cleanOldName = oldKey.split('/').filter(Boolean).pop();
     const newName = prompt("Rename Karein:", cleanOldName);
     
@@ -504,7 +506,6 @@ function renderFilesFromCache() {
 
     let uniqueIdCounter = 0;
     
-    // RENDER FOLDERS (Single Click to open)
     trackingSubFoldersInCurrentDir.forEach(folderName => {
         if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
         if(currentSelectedActiveTabType !== 'all') return;
@@ -539,7 +540,6 @@ function renderFilesFromCache() {
         fileList.appendChild(li);
     });
 
-    // RENDER FILES (UPDATED: Single Touch on Row triggers Single Click Preview)
     itemsToRender.forEach(function(item) {
         uniqueIdCounter++;
         const content = item.data;
@@ -568,8 +568,6 @@ function renderFilesFromCache() {
 
         const li = document.createElement('li');
         li.className = 'file-item';
-        
-        // FIXED: Added direct onclick action target on the root item row itself
         li.setAttribute('onclick', `previewFileDirectly('${originalKey}')`);
         
         li.innerHTML = `
