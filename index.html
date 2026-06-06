@@ -77,8 +77,8 @@
         </div>
         
         <div class="upload-zone">
-            <input type="file" id="fileInput"><br><br>
-            <button onclick="uploadFile()" style="width: auto; padding: 8px 20px;">Upload File</button>
+            <input type="file" id="fileInput" multiple><br><br>
+            <button onclick="uploadFiles()" style="width: auto; padding: 8px 20px;">Upload File(s)</button>
         </div>
         
         <h3>Aapki Files:</h3>
@@ -99,8 +99,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
 let allUserKeys = {}; 
-let isUploading = false; 
-let currentUploadManagedRequest = null; // Holds the active S3 upload object for canceling
+let activeUploadRequests = {}; // Track all ongoing uploads by unique IDs
 
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
@@ -153,14 +152,13 @@ function loadFiles() {
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
         
-        const existingProgressItem = document.getElementById('tempUploadingItem');
-        const currentProgressHTML = existingProgressItem ? existingProgressItem.outerHTML : '';
+        // Save all ongoing progress HTML rows before clearing the container list
+        const activeProgressRows = [];
+        document.querySelectorAll('.uploading-temp-item').forEach(item => {
+            activeProgressRows.push(item.outerHTML);
+        });
 
-        fileList.innerHTML = '';
-
-        if (isUploading && currentProgressHTML) {
-            fileList.innerHTML = currentProgressHTML;
-        }
+        fileList.innerHTML = activeProgressRows.join('');
 
         if (err) {
             alert("Storj connect karne me error aaya!");
@@ -168,7 +166,8 @@ function loadFiles() {
             return;
         }
         
-        if(data.Contents.length === 0 && !isUploading) {
+        const totalUploadingCount = Object.keys(activeUploadRequests).length;
+        if(data.Contents.length === 0 && totalUploadingCount === 0) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
             return;
         }
@@ -215,97 +214,102 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// NEW FUNCTION: Cancel current uploading request safely
-function cancelUpload() {
-    if (currentUploadManagedRequest) {
-        currentUploadManagedRequest.abort(); // Force stops S3 data pipe network transfer
-        isUploading = false;
-        currentUploadManagedRequest = null;
-        const itemToRemove = document.getElementById('tempUploadingItem');
-        if (itemToRemove) itemToRemove.remove();
-        alert("Upload cancel kar diya gaya!");
-        loadFiles();
+// Safely stop a specific transfer without breaking baki updates
+function cancelUpload(uploadId) {
+    const request = activeUploadRequests[uploadId];
+    if (request) {
+        request.abort();
+        delete activeUploadRequests[uploadId];
+        const row = document.getElementById(uploadId);
+        if (row) row.remove();
+        
+        if (Object.keys(activeUploadRequests).length === 0) {
+            loadFiles();
+        }
     }
 }
 
-// NEW FUNCTION: Delete file directly from Storj bucket lineup
 function deleteFile(fileKey) {
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
         s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-            if (err) {
-                alert("Delete karne me error aaya!");
-                console.log(err);
-            } else {
-                alert("File successfully delete ho gayi!");
-                loadFiles(); // Refresh list to reflect changes
-            }
+            if (err) { alert("Delete karne me error aaya!"); console.log(err); } 
+            else { loadFiles(); }
         });
     }
 }
 
-function uploadFile() {
+// NEW ENGINE: Handles one or multiple files in parallel streams
+function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    if (!file) { alert("Pehle koi file select karein!"); return; }
-    if (isUploading) { alert("Pehle se ek file upload ho rahi hai, kripya thoda rukein!"); return; }
+    const files = fileInput.files;
+    if (files.length === 0) { alert("Pehle koi file select karein!"); return; }
 
-    isUploading = true;
     const fileList = document.getElementById('listFiles');
     
     if(fileList.innerHTML.includes('Locker khali hai')) {
         fileList.innerHTML = '';
     }
 
-    // Lineup element injection with cancel button attachment
-    const tempLi = document.createElement('li');
-    tempLi.className = 'file-item';
-    tempLi.id = 'tempUploadingItem';
-    tempLi.innerHTML = `
-        <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
-        <div class="btn-group">
-            <div class="lineup-progress-container">
-                <div id="lineupBar" class="lineup-progress-bar" style="width: 0%;"></div>
-                <div id="lineupText" class="lineup-progress-text">0%</div>
+    // Process each selected file concurrently
+    Array.from(files).forEach((file) => {
+        // Create an absolutely unique ID for this specific row asset
+        const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+        const tempLi = document.createElement('li');
+        tempLi.className = 'file-item uploading-temp-item';
+        tempLi.id = uploadId;
+        tempLi.innerHTML = `
+            <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
+            <div class="btn-group">
+                <div class="lineup-progress-container">
+                    <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
+                    <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
+                </div>
+                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
             </div>
-            <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px;" onclick="cancelUpload()">Cancel ❌</button>
-        </div>
-    `;
-    
-    fileList.insertBefore(tempLi, fileList.firstChild);
-
-    // Save active stream instance to global control
-    currentUploadManagedRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
-        isUploading = false;
-        currentUploadManagedRequest = null;
+        `;
         
-        const itemToRemove = document.getElementById('tempUploadingItem');
-        if (itemToRemove) itemToRemove.remove();
+        fileList.insertBefore(tempLi, fileList.firstChild);
 
-        if (err) { 
-            if(err.code !== 'RequestAbortedError') {
-                alert("Upload failed!"); 
-                console.log(err); 
+        // Fire individual AWS connection instances
+        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+            delete activeUploadRequests[uploadId];
+            const rowToRemove = document.getElementById(uploadId);
+            if (rowToRemove) rowToRemove.remove();
+
+            if (err) { 
+                if(err.code !== 'RequestAbortedError') {
+                    alert("Upload failed for: " + file.name);
+                    console.log(err);
+                }
             }
-            loadFiles();
-        } else { 
-            fileInput.value = ''; 
-            loadFiles(); 
-        }
+            
+            // Only fire layout refresh when no other active stream is running
+            if (Object.keys(activeUploadRequests).length === 0) {
+                loadFiles();
+            }
+        });
+
+        // Save reference mapping 
+        activeUploadRequests[uploadId] = currentUploadRequest;
+
+        // Dedicated live progress routing
+        currentUploadRequest.on('httpUploadProgress', function(progress) {
+            const percentage = Math.round((progress.loaded / progress.total) * 100);
+            const specificBar = document.getElementById('bar_' + uploadId);
+            const specificText = document.getElementById('text_' + uploadId);
+            if(specificBar && specificText) {
+                specificBar.style.width = percentage + '%';
+                specificText.innerText = percentage + '%';
+            }
+        });
     });
 
-    currentUploadManagedRequest.on('httpUploadProgress', function(progress) {
-        const percentage = Math.round((progress.loaded / progress.total) * 100);
-        const lineupBar = document.getElementById('lineupBar');
-        const lineupText = document.getElementById('lineupText');
-        if(lineupBar && lineupText) {
-            lineupBar.style.width = percentage + '%';
-            lineupText.innerText = percentage + '%';
-        }
-    });
+    fileInput.value = ''; // Reset target input box instantly
 }
 
 function logout() {
-    if(isUploading) { cancelUpload(); }
+    Object.keys(activeUploadRequests).forEach(id => cancelUpload(id));
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
