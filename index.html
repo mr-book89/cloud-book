@@ -93,7 +93,7 @@
             word-break: break-all;
         }
         
-        /* --- COMPACT & CHOTE SIZE KE ROW BUTTONS --- */
+        /* --- COMPACT BUTTONS --- */
         .download-btn { 
             padding: 5px 10px !important; 
             font-size: 12px !important;    
@@ -132,7 +132,7 @@
 <body>
 
 <div class="container">
-    <h1>☁️ Cloud Dashboard</h1>
+    <h1 id="mainDashboardTitle">☁️ Cloud Dashboard</h1>
     
     <div id="loginSection">
         <div class="form-group">
@@ -148,9 +148,9 @@
 
     <div id="cloudInterface">
         <button class="back-btn" onclick="logout()">Logout</button>
-        <h2>Welcome !</h2>
+        <h2 id="welcomeText">Welcome !</h2>
         <div class="form-group">
-            <label>Select Your Book</label>
+            <label id="selectBookLabel">Select Your Book</label>
             <select id="accountSelect" onchange="switchAccount()">
                 <option value="">-- Account Select Karein --</option>
                 <option value="acc1">Book 1</option>
@@ -195,6 +195,42 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
+// BULLETPROOF ENGINE: Page khulte hi ya login hote hi text force-change ho jayega
+function forceApplyTextChanges() {
+    const mainTitle = document.getElementById('mainDashboardTitle');
+    const welcome = document.getElementById('welcomeText');
+    const labelBook = document.getElementById('selectBookLabel');
+    
+    if(mainTitle) mainTitle.innerHTML = "☁️ Cloud Dashboard";
+    if(welcome) welcome.innerHTML = "Welcome !";
+    if(labelBook) labelBook.innerHTML = "Select Your Book";
+    
+    // Dropdown elements list update
+    const selectBox = document.getElementById('accountSelect');
+    if(selectBox) {
+        const customLabels = {
+            "acc1": "Book 1",
+            "acc2": "Book 2",
+            "acc3": "Book 3",
+            "acc4": "Book 4",
+            "acc5": "Book 5",
+            "acc6": "Book 6",
+            "acc7": "Book 7",
+            "acc8": "Book 8"
+        };
+        Array.from(selectBox.options).forEach(option => {
+            if(customLabels[option.value]) {
+                option.text = customLabels[option.value];
+            }
+        });
+    }
+}
+
+// Automatically execute text overwrite on window load
+window.onload = function() {
+    forceApplyTextChanges();
+};
+
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
     const pass = document.getElementById('passInput').value;
@@ -215,6 +251,7 @@ async function handleLogin() {
         allUserKeys = data.storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
+        forceApplyTextChanges(); // Double check shift logic on login event
     }
 }
 
