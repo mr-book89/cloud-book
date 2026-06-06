@@ -14,11 +14,20 @@
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
+        /* --- SEARCH & FILTER UTILITIES --- */
+        .search-filter-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .filter-btn-group { display: flex; gap: 8px; }
+        .filter-tab { flex: 1; padding: 8px; background: #e2e8f0; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; margin: 0 !important; width: auto !important; }
+        .filter-tab.active-tab { background: #2563eb !important; color: white !important; }
+
         /* --- FOLDER STRIP & SYSTEM LAYOUT --- */
         .folder-engine-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .folder-nav-bar { background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: bold; color: #475569; }
         .folder-nav-link { color: #2563eb; cursor: pointer; text-decoration: underline; }
         
+        /* --- STORAGE COUNTER FOOTER --- */
+        .storage-status-bar { background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #0369a1; margin-top: 15px; text-align: right; }
+
         /* --- PREMIUM SECTION HEADING --- */
         .section-heading {
             font-size: 20px;
@@ -150,10 +159,11 @@
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
-        /* PREVIEW POPUP MODAL */
-        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
+        /* PREVIEW POPUP MODAL (EXPANDED FOR MULTI-MEDIA AUDIO/VIDEO ENGINES) */
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; }
+        .modal-content { max-width: 90%; max-height: 70%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); display: none; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
+        #modalMediaTitle { color: white; margin-bottom: 15px; font-size: 16px; font-weight: 500; text-align: center; width: 80%; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -223,6 +233,16 @@
             <button onclick="uploadFiles()" style="width: auto; padding: 8px 20px;">Upload File(s)</button>
         </div>
         
+        <!-- NEW SEARCH AND FILTER PANELS -->
+        <div class="search-filter-box">
+            <input type="text" id="cloudSearchInput" placeholder="Files ya Folders search karein..." oninput="applySearchAndFilters()">
+            <div class="filter-btn-group">
+                <button class="filter-tab active-tab" id="tabAll" onclick="switchFilterTab('all')">All Files</button>
+                <button class="filter-tab" id="tabPhotos" onclick="switchFilterTab('photos')">Photos Only</button>
+                <button class="filter-tab" id="tabVideos" onclick="switchFilterTab('videos')">Videos Only</button>
+            </div>
+        </div>
+
         <div class="section-heading">Aapki Files</div>
         
         <div class="folder-nav-bar" id="folderPathBar">
@@ -230,12 +250,19 @@
         </div>
 
         <ul id="listFiles" class="file-list"></ul>
+        
+        <!-- NEW STORAGE MONITOR BAR -->
+        <div class="storage-status-bar" id="storageSummaryTracker">Total Files: 0 | Size: 0.00 MB</div>
     </div>
 </div>
 
+<!-- DYNAMIC PLAYER MODAL BOX -->
 <div id="previewModal" class="modal">
     <span class="close-modal" onclick="closePreview()">&times;</span>
+    <div id="modalMediaTitle">File Name</div>
     <img class="modal-content" id="previewImg" src="">
+    <video class="modal-content" id="previewVideo" controls style="max-height: 65%; width: auto;"></video>
+    <audio class="modal-content" id="previewAudio" controls style="width: 80%; margin-top: 20px;"></audio>
 </div>
 
 <script>
@@ -250,6 +277,8 @@ let activeUploadRequests = {};
 
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
+let localFilesCachedMemoryList = []; // Memory cache layer to handle high speed local searches
+let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
     const mainTitle = document.getElementById('mainDashboardTitle');
@@ -352,12 +381,35 @@ function navigateToFolder(path) {
         pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span> / <strong style="color:#1e293b;">${cleanDisplayFolder}</strong>`;
     }
     
-    loadFiles();
+    // Clear search bar on folder change
+    document.getElementById('cloudSearchInput').value = "";
+    renderFilesFromCache();
 }
 
 function isImageFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
+}
+
+function isVideoFile(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext);
+}
+
+function isAudioFile(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext);
+}
+
+function switchFilterTab(tabType) {
+    currentSelectedActiveTabType = tabType;
+    document.querySelectorAll('.filter-tab').forEach(btn => btn.classList.remove('active-tab'));
+    
+    if(tabType === 'all') document.getElementById('tabAll').classList.add('active-tab');
+    if(tabType === 'photos') document.getElementById('tabPhotos').classList.add('active-tab');
+    if(tabType === 'videos') document.getElementById('tabVideos').classList.add('active-tab');
+    
+    renderFilesFromCache();
 }
 
 function loadFiles() {
@@ -366,113 +418,165 @@ function loadFiles() {
     }
 
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        const fileList = document.getElementById('listFiles');
-        
-        const activeProgressRows = [];
-        document.querySelectorAll('.uploading-temp-item').forEach(item => {
-            activeProgressRows.push(item.outerHTML);
-        });
-
-        fileList.innerHTML = activeProgressRows.join('');
-
         if (err) {
             alert("Storj connect karne me error aaya!");
             console.log(err);
             return;
         }
-        
-        uniqueDetectedFoldersList.clear(); 
-        const itemsToRender = [];
-        const trackingSubFoldersInCurrentDir = new Set();
-
-        data.Contents.forEach(function(content) {
-            const key = content.Key;
-            
-            if(key.includes('/')) {
-                const parts = key.split('/');
-                const baseFolderName = parts[0];
-                uniqueDetectedFoldersList.add(baseFolderName);
-                
-                if(currentDirectoryPath === "") {
-                    trackingSubFoldersInCurrentDir.add(baseFolderName);
-                } else if(key.startsWith(currentDirectoryPath)) {
-                    const relativePath = key.substring(currentDirectoryPath.length);
-                    if(relativePath.length > 0) {
-                        itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
-                    }
-                }
-            } else {
-                if(currentDirectoryPath === "") {
-                    itemsToRender.push({ type: 'file', data: content, displayKey: key });
-                }
-            }
-        });
-
-        updateFolderDropdownUI();
-
-        trackingSubFoldersInCurrentDir.forEach(folderName => {
-            const li = document.createElement('li');
-            li.className = 'file-item folder-row-style';
-            li.onclick = function() { navigateToFolder(folderName + "/"); };
-            li.innerHTML = `
-                <div class="file-info-zone">
-                    <div class="file-thumbnail" style="background:#f1f5f9; font-size:11px; font-weight:bold;">DIR</div>
-                    <div class="file-name-text" style="font-weight:bold; color:#1e293b;">
-                        ${folderName} <br>
-                        <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder / Directory</span>
-                    </div>
-                </div>
-                <div>
-                    <strong style="color:#2563eb; font-size:13px; padding-right:10px;">Open ➔</strong>
-                </div>
-            `;
-            fileList.appendChild(li);
-        });
-
-        itemsToRender.forEach(function(item) {
-            const content = item.data;
-            const originalKey = content.Key;
-            const displayLabel = item.displayKey;
-            
-            const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: originalKey, Expires: 3600 });
-            
-            const li = document.createElement('li');
-            li.className = 'file-item';
-            
-            let iconOrThumbnailHTML = `<div class="file-thumbnail">FILE</div>`;
-            if (isImageFile(originalKey)) {
-                iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
-            }
-
-            li.innerHTML = `
-                <div class="file-info-zone">
-                    ${iconOrThumbnailHTML}
-                    <div class="file-name-text">
-                        ${displayLabel} <br>
-                        <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
-                    </div>
-                </div>
-                <div class="btn-group">
-                    <button class="download-btn" style="background: #3b82f6;" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View</button>
-                    <a href="${url}" download="${displayLabel}" onclick="event.stopPropagation();">
-                        <button class="download-btn" style="background: #10b981;">Download</button>
-                    </a>
-                    <button class="download-btn" style="background: #ef4444;" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</button>
-                </div>
-            `;
-            fileList.appendChild(li);
-        });
-
-        if (fileList.innerHTML === "") {
-            fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
-        }
+        // Cache full payload raw array to enable client side high speed filters
+        localFilesCachedMemoryList = data.Contents || [];
+        renderFilesFromCache();
     });
 }
 
+// FULL MULTI-FUNCTIONAL CLIENT RENDERING MATRIX FOR SEARCH & SPACE EXTRACTION
+function renderFilesFromCache() {
+    const fileList = document.getElementById('listFiles');
+    const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
+    
+    const activeProgressRows = [];
+    document.querySelectorAll('.uploading-temp-item').forEach(item => {
+        activeProgressRows.push(item.outerHTML);
+    });
+    fileList.innerHTML = activeProgressRows.join('');
+
+    uniqueDetectedFoldersList.clear();
+    const itemsToRender = [];
+    const trackingSubFoldersInCurrentDir = new Set();
+    
+    let renderedFilesTotalCount = 0;
+    let renderedFilesTotalByteSize = 0;
+
+    localFilesCachedMemoryList.forEach(function(content) {
+        const key = content.Key;
+        
+        // Setup global folder map data layer tracking
+        if(key.includes('/')) {
+            const parts = key.split('/');
+            const baseFolderName = parts[0];
+            uniqueDetectedFoldersList.add(baseFolderName);
+            
+            if(currentDirectoryPath === "") {
+                trackingSubFoldersInCurrentDir.add(baseFolderName);
+            } else if(key.startsWith(currentDirectoryPath)) {
+                const relativePath = key.substring(currentDirectoryPath.length);
+                if(relativePath.length > 0) {
+                    itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
+                }
+            }
+        } else {
+            if(currentDirectoryPath === "") {
+                itemsToRender.push({ type: 'file', data: content, displayKey: key });
+            }
+        }
+    });
+
+    updateFolderDropdownUI();
+
+    // Render folder rows (filtered by search query if applicable)
+    trackingSubFoldersInCurrentDir.forEach(folderName => {
+        if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
+        
+        // Skip directory rows if user is hunting exclusively inside specific file types tabs
+        if(currentSelectedActiveTabType !== 'all') return;
+
+        const li = document.createElement('li');
+        li.className = 'file-item folder-row-style';
+        li.onclick = function() { navigateToFolder(folderName + "/"); };
+        li.innerHTML = `
+            <div class="file-info-zone">
+                <div class="file-thumbnail" style="background:#f1f5f9; font-size:11px; font-weight:bold;">DIR</div>
+                <div class="file-name-text" style="font-weight:bold; color:#1e293b;">
+                    ${folderName} <br>
+                    <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder / Directory</span>
+                </div>
+            </div>
+            <div>
+                <strong style="color:#2563eb; font-size:13px; padding-right:10px;">Open ➔</strong>
+            </div>
+        `;
+        fileList.appendChild(li);
+    });
+
+    // Process file lists rendering layer
+    itemsToRender.forEach(function(item) {
+        const content = item.data;
+        const originalKey = content.Key;
+        const displayLabel = item.displayKey;
+        
+        // 1. Text Search Box filtration logic execution
+        if(searchQuery !== "" && !displayLabel.toLowerCase().includes(searchQuery)) return;
+        
+        // 2. Type Tab filters filtration logic execution
+        if(currentSelectedActiveTabType === 'photos' && !isImageFile(originalKey)) return;
+        if(currentSelectedActiveTabType === 'videos' && !isVideoFile(originalKey)) return;
+
+        // Compile statistics counter variables values
+        renderedFilesTotalCount++;
+        renderedFilesTotalByteSize += content.Size;
+
+        const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: originalKey, Expires: 3600 });
+        
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        
+        let typeIconLabel = "FILE";
+        if(isImageFile(originalKey)) typeIconLabel = "IMG";
+        if(isVideoFile(originalKey)) typeIconLabel = "VIDEO";
+        if(isAudioFile(originalKey)) typeIconLabel = "AUDIO";
+
+        let iconOrThumbnailHTML = `<div class="file-thumbnail">${typeIconLabel}</div>`;
+        if (isImageFile(originalKey)) {
+            iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
+        }
+
+        li.innerHTML = `
+            <div class="file-info-zone">
+                ${iconOrThumbnailHTML}
+                <div class="file-name-text">
+                    ${displayLabel} <br>
+                    <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="download-btn" style="background: #3b82f6;" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View</button>
+                <a href="${url}" download="${displayLabel}" onclick="event.stopPropagation();">
+                    <button class="download-btn" style="background: #10b981;">Download</button>
+                </a>
+                <button class="download-btn" style="background: #ef4444;" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</button>
+            </div>
+        `;
+        fileList.appendChild(li);
+    });
+
+    // Update Live dynamic Storage status bar text
+    const convertedMegaBytes = (renderedFilesTotalByteSize / 1024 / 1024).toFixed(2);
+    document.getElementById('storageSummaryTracker').innerText = `Total Files: ${renderedFilesTotalCount} | Size: ${convertedMegaBytes} MB`;
+
+    if (fileList.innerHTML === "") {
+        fileList.innerHTML = '<li>Locker khali hai ya matches nahi mile.</li>';
+    }
+}
+
+function applySearchAndFilters() {
+    renderFilesFromCache();
+}
+
+// EXTENDED UNIVERSAL STREAMING MULTI-MEDIA VIEW SYSTEM
 function previewFileDirectly(fileKey) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('previewImg');
-    modalImg.src = ""; 
+    const modalVid = document.getElementById('previewVideo');
+    const modalAud = document.getElementById('previewAudio');
+    const modalTitle = document.getElementById('modalMediaTitle');
+    
+    // Completely clear out old streams from previous views initialization
+    modalImg.src = ""; modalImg.style.display = "none";
+    modalVid.src = ""; modalVid.style.display = "none";
+    modalAud.src = ""; modalAud.style.display = "none";
+    
+    const shortTitleClean = fileKey.split('/').pop();
+    modalTitle.innerText = shortTitleClean;
     
     s3.getObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
         if (err) {
@@ -480,14 +584,41 @@ function previewFileDirectly(fileKey) {
             console.log(err);
             return;
         }
+        
         const blob = new Blob([data.Body], { type: data.ContentType });
         const blobUrl = URL.createObjectURL(blob);
         modal.style.display = "flex";
-        modalImg.src = blobUrl;
+
+        if(isImageFile(fileKey)) {
+            modalImg.src = blobUrl;
+            modalImg.style.display = "block";
+        } else if(isVideoFile(fileKey)) {
+            modalVid.src = blobUrl;
+            modalVid.style.display = "block";
+            modalVid.load();
+            modalVid.play().catch(e => console.log("Autoplay block text wrapper alert:", e));
+        } else if(isAudioFile(fileKey)) {
+            modalAud.src = blobUrl;
+            modalAud.style.display = "block";
+            modalAud.load();
+            modalAud.play().catch(e => console.log("Autoplay block text wrapper alert:", e));
+        } else {
+            // Fallback strategy alert for generic raw files download trigger requests
+            modalTitle.innerText = shortTitleClean + " (Preview not available, download to view)";
+            modalImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path><polyline points='14 2 14 8 20 8'></polyline></svg>";
+            modalImg.style.display = "block";
+        }
     });
 }
 
 function closePreview() {
+    const modalVid = document.getElementById('previewVideo');
+    const modalAud = document.getElementById('previewAudio');
+    
+    // Explicitly kill resource hooks inside runtime execution streams
+    if(modalVid) modalVid.pause();
+    if(modalAud) modalAud.pause();
+    
     document.getElementById('previewModal').style.display = "none";
 }
 
@@ -513,7 +644,12 @@ function deleteFile(fileKey) {
     if(confirm("Kya aap sach me is file ko delete karna chahte hain?")) {
         s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
             if (err) { alert("Delete karne me error aaya!"); console.log(err); } 
-            else { loadFiles(); }
+            else { 
+                // Immediate refresh mapping
+                s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
+                    if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
+                });
+            }
         });
     }
 }
@@ -603,7 +739,11 @@ function uploadFiles() {
                 document.getElementById('newFolderNameInput').value = "";
                 document.getElementById('uploadFolderTarget').value = "root";
                 toggleFolderInputStyle();
-                loadFiles();
+                
+                // Re-sync memory map cache instantly upon complete payload stream uploads
+                s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
+                    if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
+                });
             }
         });
 
