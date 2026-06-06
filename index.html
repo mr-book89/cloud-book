@@ -24,12 +24,10 @@
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; }
 
-        /* GOOGLE DRIVE STYLE FLOATING NOTIFICATION CARD */
-        .drive-upload-card { display: none; position: fixed; bottom: 20px; right: 20px; width: 320px; background: #1e293b; color: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); padding: 15px; z-index: 2000; box-sizing: border-box; }
-        .drive-card-header { font-size: 14px; font-weight: bold; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f8fafc; }
-        .drive-progress-bg { background: rgba(255,255,255,0.2); height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 5px; }
-        .drive-progress-bar { background: #3b82f6; height: 100%; width: 0%; transition: width 0.1s linear; }
-        .drive-card-footer { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; }
+        /* LINEUP PROGRESS BAR STYLES */
+        .lineup-progress-container { width: 150px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 16px; position: relative; }
+        .lineup-progress-bar { background-color: #3b82f6; height: 100%; width: 0%; transition: width 0.1s linear; }
+        .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 16px; }
 
         /* PREVIEW POPUP MODAL */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
@@ -85,17 +83,6 @@
         
         <h3>Aapki Files:</h3>
         <ul id="listFiles" class="file-list"></ul>
-    </div>
-</div>
-
-<div id="driveUploadWidget" class="drive-upload-card">
-    <div id="driveFileName" class="drive-card-header">File: photo.jpg</div>
-    <div class="drive-progress-bg">
-        <div id="driveProgressBar" class="drive-progress-bar"></div>
-    </div>
-    <div class="drive-card-footer">
-        <span id="driveStatusText">Uploading...</span>
-        <span id="drivePercentText">0%</span>
     </div>
 </div>
 
@@ -163,7 +150,15 @@ function switchAccount() {
 function loadFiles() {
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
+        
+        // Save temporary uploading item if it exists
+        const tempUploadingItem = document.getElementById('tempUploadingItem');
         fileList.innerHTML = '';
+
+        // If something is uploading, keep it at the top of the lineup
+        if (tempUploadingItem) {
+            fileList.appendChild(tempUploadingItem);
+        }
 
         if (err) {
             alert("Storj connect karne me error aaya!");
@@ -171,7 +166,7 @@ function loadFiles() {
             return;
         }
         
-        if(data.Contents.length === 0) {
+        if(data.Contents.length === 0 && !tempUploadingItem) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
             return;
         }
@@ -217,55 +212,59 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// NEW GOOGLE DRIVE PROCESSING FORMAT 
+// NEW LINEUP PROGRESS LOGIC (Google Drive Style List Integration)
 function uploadFile() {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     if (!file) { alert("Pehle koi file select karein!"); return; }
 
-    const widget = document.getElementById('driveUploadWidget');
-    const fileNameText = document.getElementById('driveFileName');
-    const progressBar = document.getElementById('driveProgressBar');
-    const statusText = document.getElementById('driveStatusText');
-    const percentText = document.getElementById('drivePercentText');
+    const fileList = document.getElementById('listFiles');
+    
+    // Check if "Locker khali hai" text exists and clear it
+    if(fileList.innerHTML.includes('Locker khali hai')) {
+        fileList.innerHTML = '';
+    }
 
-    // Show Google Drive style floating box
-    widget.style.display = 'block';
-    fileNameText.innerText = "Uploading: " + file.name;
-    progressBar.style.width = '0%';
-    progressBar.style.background = '#3b82f6'; // Blue when uploading
-    statusText.innerText = "Processing...";
-    percentText.innerText = '0%';
+    // Create a temporary row right inside the list lineup at the top
+    const tempLi = document.createElement('li');
+    tempLi.className = 'file-item';
+    tempLi.id = 'tempUploadingItem';
+    tempLi.innerHTML = `
+        <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
+        <div class="lineup-progress-container">
+            <div id="lineupBar" class="lineup-progress-bar"></div>
+            <div id="lineupText" class="lineup-progress-text">0%</div>
+        </div>
+    `;
+    
+    // Insert at the very top of the list lineup
+    fileList.insertBefore(tempLi, fileList.firstChild);
+
+    const lineupBar = document.getElementById('lineupBar');
+    const lineupText = document.getElementById('lineupText');
 
     const uploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+        // Remove the temporary progress item once finished
+        const itemToRemove = document.getElementById('tempUploadingItem');
+        if (itemToRemove) itemToRemove.remove();
+
         if (err) { 
-            statusText.innerText = "Upload Failed!";
-            progressBar.style.background = '#ef4444'; // Red color on error
+            alert("Upload failed!"); 
             console.log(err); 
-            setTimeout(() => { widget.style.display = 'none'; }, 5000);
+            loadFiles();
         } else { 
-            // SUCCESS - Looks exactly like Google drive completed state
-            statusText.innerText = "Upload Complete! ✓";
-            statusText.style.color = "#10b981";
-            progressBar.style.width = '100%';
-            progressBar.style.background = '#10b981'; // Green on success
-            percentText.innerText = '100%';
             fileInput.value = ''; 
-            loadFiles(); 
-            
-            // Automatically hide after 3 seconds without bothering the user
-            setTimeout(() => { 
-                widget.style.display = 'none'; 
-                statusText.style.color = "#cbd5e1"; // Reset style
-            }, 3000);
+            loadFiles(); // Automatically updates the list and turns the item into a regular file with View/Download buttons
         }
     });
 
+    // Update percentage directly in the list row
     uploadRequest.on('httpUploadProgress', function(progress) {
         const percentage = Math.round((progress.loaded / progress.total) * 100);
-        progressBar.style.width = percentage + '%';
-        percentText.innerText = percentage + '%';
-        statusText.innerText = "Uploading to Cloud...";
+        if(lineupBar && lineupText) {
+            lineupBar.style.width = percentage + '%';
+            lineupText.innerText = percentage + '%';
+        }
     });
 }
 
