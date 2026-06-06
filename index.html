@@ -155,14 +155,14 @@
             <label>Kis Storj Account ka Storage chalana hai?</label>
             <select id="accountSelect" onchange="switchAccount()">
                 <option value="">-- Account Select Karein --</option>
-                <option value="acc1">Account 1 (ashok-cloud) - 25GB</option>
-                <option value="acc2">Account 2 (asu-cloud) - 25GB</option>
-                <option value="acc3">Account 3 (chan-cloud) - 25GB</option>
-                <option value="acc4">Account 4 (ashu-cloud) - 25GB</option>
-                <option value="acc5">Account 5 (vij-cloud) - 25GB</option>
-                <option value="acc6">Account 6 (mnt-cloud) - 25GB</option>
-                <option value="acc7">Account 7 (dhn-cloud) - 25GB</option>
-                <option value="acc8">Account 8 (tv-cloud) - 25GB</option>
+                <option value="acc1">Book 1</option>
+                <option value="acc2">Book 2</option>
+                <option value="acc3">Book 3</option>
+                <option value="acc4">Book 4</option>
+                <option value="acc5">Book 5</option>
+                <option value="acc6">Book 6</option>
+                <option value="acc7">Book 7</option>
+                <option value="acc8">Book 8</option>
             </select>
         </div>
     </div>
@@ -244,7 +244,6 @@ function switchAccount() {
     loadFiles();
 }
 
-// Function to check if file format is an image asset
 function isImageFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
@@ -283,7 +282,6 @@ function loadFiles() {
             const li = document.createElement('li');
             li.className = 'file-item';
             
-            // Build Thumbnail preview row directly based on asset type matching
             let iconOrThumbnailHTML = `<div class="file-thumbnail">📄</div>`;
             if (isImageFile(content.Key)) {
                 iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
@@ -310,6 +308,7 @@ function loadFiles() {
     });
 }
 
+// Inline Image Viewer 
 function previewFileDirectly(fileKey) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('previewImg');
@@ -348,7 +347,7 @@ function cancelUpload(uploadId) {
 
 function deleteFile(fileKey) {
     if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
+        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
         return;
     }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
