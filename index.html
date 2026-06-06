@@ -16,7 +16,7 @@
         
         /* --- FOLDER STRIP & SYSTEM LAYOUT --- */
         .folder-engine-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .folder-nav-bar { background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; color: #334155; }
+        .folder-nav-bar { background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: bold; color: #475569; }
         .folder-nav-link { color: #2563eb; cursor: pointer; text-decoration: underline; }
         
         /* --- PREMIUM SECTION HEADING --- */
@@ -72,12 +72,12 @@
             align-items: center; 
         }
         .file-item.folder-row-style {
-            background: #f0fdf4;
-            border-color: #bbf7d0;
+            background: #f8fafc;
+            border-color: #cbd5e1;
             cursor: pointer;
         }
         .file-item.folder-row-style:hover {
-            background: #dcfce7;
+            background: #f1f5f9;
         }
         .file-info-zone {
             display: flex;
@@ -96,7 +96,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #475569;
             flex-shrink: 0;
         }
         .file-name-text {
@@ -177,7 +179,7 @@
         <div class="form-group">
             <label id="selectBookLabel">Select Your Book</label>
             <select id="accountSelect" onchange="switchAccount()">
-                <option value="">-- Account Select Karein --</option>
+                <option value="">Select Your Book</option>
                 <option value="acc1">Book 1</option>
                 <option value="acc2">Book 2</option>
                 <option value="acc3">Book 3</option>
@@ -197,11 +199,11 @@
 
         <div class="folder-engine-box">
             <div class="form-group">
-                <label>Folder Location Chunyein:</label>
+                <label>Select One</label>
                 <select id="uploadFolderTarget" onchange="toggleFolderInputStyle()">
-                    <option value="root">Normal Upload (Bahar Main List Me)</option>
-                    <option value="existing">Pehle Se Bane Folder Me Upload Karein</option>
-                    <option value="new">Naya Folder Banakar Upload Karein</option>
+                    <option value="root">Upload</option>
+                    <option value="existing">Existing Folder</option>
+                    <option value="new">Create New Folder</option>
                 </select>
             </div>
             
@@ -224,7 +226,7 @@
         <div class="section-heading">Aapki Files</div>
         
         <div class="folder-nav-bar" id="folderPathBar">
-            Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home 🏠</span>
+            Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span>
         </div>
 
         <ul id="listFiles" class="file-list"></ul>
@@ -246,7 +248,6 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
-// Directory Control Engine Variables
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
 
@@ -312,11 +313,10 @@ function switchAccount() {
     document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
     
     document.getElementById('fileManager').style.display = 'block';
-    currentDirectoryPath = ""; // Reset folder map on switch
+    currentDirectoryPath = ""; 
     loadFiles();
 }
 
-// Controller to toggle visual structure of folder configuration inputs
 function toggleFolderInputStyle() {
     const type = document.getElementById('uploadFolderTarget').value;
     document.getElementById('existingFolderContainer').style.display = (type === 'existing') ? 'block' : 'none';
@@ -344,13 +344,12 @@ function updateFolderDropdownUI() {
 function navigateToFolder(path) {
     currentDirectoryPath = path;
     
-    // UI Path Navigation Indicator update
     const pathBar = document.getElementById('folderPathBar');
     if(path === "") {
-        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home 🏠</span>`;
+        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span>`;
     } else {
         const cleanDisplayFolder = path.replace(/\/$/, "");
-        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home 🏠</span> / <strong style="color:#1e293b;">📁 ${cleanDisplayFolder}</strong>`;
+        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span> / <strong style="color:#1e293b;">${cleanDisplayFolder}</strong>`;
     }
     
     loadFiles();
@@ -389,24 +388,20 @@ function loadFiles() {
         data.Contents.forEach(function(content) {
             const key = content.Key;
             
-            // Build absolute dynamic virtual folder mapping matrix
             if(key.includes('/')) {
                 const parts = key.split('/');
                 const baseFolderName = parts[0];
                 uniqueDetectedFoldersList.add(baseFolderName);
                 
-                // If user inside root, capture unique master folders
                 if(currentDirectoryPath === "") {
                     trackingSubFoldersInCurrentDir.add(baseFolderName);
                 } else if(key.startsWith(currentDirectoryPath)) {
-                    // Item matches subdirectory filter
                     const relativePath = key.substring(currentDirectoryPath.length);
                     if(relativePath.length > 0) {
                         itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
                     }
                 }
             } else {
-                // Root files
                 if(currentDirectoryPath === "") {
                     itemsToRender.push({ type: 'file', data: content, displayKey: key });
                 }
@@ -415,17 +410,16 @@ function loadFiles() {
 
         updateFolderDropdownUI();
 
-        // Render mapped active directories rows first
         trackingSubFoldersInCurrentDir.forEach(folderName => {
             const li = document.createElement('li');
             li.className = 'file-item folder-row-style';
             li.onclick = function() { navigateToFolder(folderName + "/"); };
             li.innerHTML = `
                 <div class="file-info-zone">
-                    <div class="file-thumbnail" style="background:#fef08a; border-color:#fde047;">📁</div>
-                    <div class="file-name-text" style="font-weight:bold; color:#166534;">
+                    <div class="file-thumbnail" style="background:#f1f5f9; font-size:11px; font-weight:bold;">DIR</div>
+                    <div class="file-name-text" style="font-weight:bold; color:#1e293b;">
                         ${folderName} <br>
-                        <span style="font-size:11px; color:#15803d; font-weight:normal;">Folder / Directory</span>
+                        <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder / Directory</span>
                     </div>
                 </div>
                 <div>
@@ -435,7 +429,6 @@ function loadFiles() {
             fileList.appendChild(li);
         });
 
-        // Render mapped active raw items inside directory view list
         itemsToRender.forEach(function(item) {
             const content = item.data;
             const originalKey = content.Key;
@@ -446,7 +439,7 @@ function loadFiles() {
             const li = document.createElement('li');
             li.className = 'file-item';
             
-            let iconOrThumbnailHTML = `<div class="file-thumbnail">📄</div>`;
+            let iconOrThumbnailHTML = `<div class="file-thumbnail">FILE</div>`;
             if (isImageFile(originalKey)) {
                 iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
             }
@@ -525,7 +518,6 @@ function deleteFile(fileKey) {
     }
 }
 
-// INTEGRATED LOGICAL ENGINE FOR FOLDER DEPLOYMENT WRITING KEYPATHS
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -536,7 +528,6 @@ function uploadFiles() {
         fileList.innerHTML = '';
     }
 
-    // Determine target root path key based on chosen dropdown mode option
     const folderStrategy = document.getElementById('uploadFolderTarget').value;
     let targetPathPrefix = "";
 
@@ -547,7 +538,6 @@ function uploadFiles() {
         }
     } else if (folderStrategy === 'new') {
         let rawNewFolderName = document.getElementById('newFolderNameInput').value.trim();
-        // Dynamic clean sanitization of directory formatting
         rawNewFolderName = rawNewFolderName.replace(/[\/\\?%*:|"<>. ]/g, "_");
         if(!rawNewFolderName) {
             alert("Kripya naye folder ka naam sahi se dalein!");
@@ -555,7 +545,6 @@ function uploadFiles() {
         }
         targetPathPrefix = rawNewFolderName + "/";
     } else {
-        // Normal direct routing, but preserves path location logic contextually
         if(currentDirectoryPath !== "") {
             targetPathPrefix = currentDirectoryPath;
         }
@@ -571,7 +560,7 @@ function uploadFiles() {
         
         tempLi.innerHTML = `
             <div class="file-info-zone">
-                <div class="file-thumbnail" style="color: #2563eb; font-size:14px; font-weight:bold;">⏳</div>
+                <div class="file-thumbnail" style="color: #2563eb; font-size:11px; font-weight:bold;">LOAD</div>
                 <div class="file-name-text" style="color: #2563eb; font-weight: bold;">
                     Uploading: ${file.name}
                 </div>
@@ -611,7 +600,6 @@ function uploadFiles() {
             }
             
             if (Object.keys(activeUploadRequests).length === 0) {
-                // Automatically route back configuration structure after successful uploads
                 document.getElementById('newFolderNameInput').value = "";
                 document.getElementById('uploadFolderTarget').value = "root";
                 toggleFolderInputStyle();
