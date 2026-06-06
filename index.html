@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mera Secure 200GB Cloud</title>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #1e3a8a; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; font-weight: bold; }
+        button:hover { background: #1d4ed8; }
+        #fileManager, #cloudInterface { display: none; margin-top: 30px; }
+        .file-list { list-style: none; padding: 0; }
+        .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; align-items: center; }
+        .download-btn { background: #10b981; padding: 6px 12px; font-size: 14px; width: auto; margin: 0; }
+        .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
+        .back-btn { background: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
+        .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☁️ Personal Secure Cloud Dashboard</h1>
+    
+    <div id="loginSection">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="userInput" placeholder="Apna username dalein">
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="passInput" placeholder="Apna password dalein">
+        </div>
+        <button onclick="handleLogin()">Login to Cloud</button>
+    </div>
+
+    <div id="cloudInterface">
+        <button class="back-btn" onclick="logout()">Logout</button>
+        <h2>Welcome Back!</h2>
+        <div class="form-group">
+            <label>Kis Storj Account ka Storage chalana hai?</label>
+            <select id="accountSelect" onchange="switchAccount()">
+                <option value="">-- Account Select Karein --</option>
+                <option value="acc1">Account 1 (ashok-cloud) - 25GB</option>
+                <option value="acc2">Account 2 (asu-cloud) - 25GB</option>
+                <option value="acc3">Account 3 (chan-cloud) - 25GB</option>
+                <option value="acc4">Account 4 (ashu-cloud) - 25GB</option>
+                <option value="acc5">Account 5 (vij-cloud) - 25GB</option>
+                <option value="acc6">Account 6 (mnt-cloud) - 25GB</option>
+                <option value="acc7">Account 7 (dhn-cloud) - 25GB</option>
+                <option value="acc8">Account 8 (tv-cloud) - 25GB</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="fileManager">
+        <div class="account-bar">
+            <strong id="activeAccountTitle">Connected: None</strong>
+        </div>
+        
+        <div class="upload-zone">
+            <input type="file" id="fileInput"><br><br>
+            <button onclick="uploadFile()" style="width: auto; padding: 8px 20px;">Upload File</button>
+        </div>
+        
+        <h3>Aapki Files:</h3>
+        <ul id="listFiles" class="file-list"></ul>
+    </div>
+</div>
+
+<script>
+// !!! GLOBAL CREDENTIALS CONFIGURATION (ALREADY FILLED) !!!
+const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
+const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let s3;
+let currentBucket;
+let allUserKeys = {}; 
+
+async function handleLogin() {
+    const user = document.getElementById('userInput').value;
+    const pass = document.getElementById('passInput').value;
+
+    if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
+
+    // Fetch details from Supabase
+    const { data, error } = await supabase
+        .from('cloud_users')
+        .select('*')
+        .eq('username', user)
+        .eq('password', pass)
+        .single();
+
+    if (error || !data) {
+        alert("Username ya Password galat hai!");
+        console.error(error);
+    } else {
+        allUserKeys = data.storj_keys; // 8 accounts ka data load ho gaya
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('cloudInterface').style.display = 'block';
+    }
+}
+
+function switchAccount() {
+    const selectedAcc = document.getElementById('accountSelect').value;
+    if(!selectedAcc) {
+        document.getElementById('fileManager').style.display = 'none';
+        return;
+    }
+
+    const accDetails = allUserKeys[selectedAcc];
+    currentBucket = accDetails.bucket;
+
+    // Connect AWS SDK to selected Storj Account
+    AWS.config.update({
+        accessKeyId: accDetails.accessKey,
+        secretAccessKey: accDetails.secretKey,
+        endpoint: 'https://gateway.storjshare.io',
+        s3ForcePathStyle: true,
+        signatureVersion: 'v4'
+    });
+
+    s3 = new AWS.S3();
+    document.getElementById('activeAccountTitle').innerText = "Connected: " + document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
+    document.getElementById('fileManager').style.display = 'block';
+    loadFiles();
+}
+
+function loadFiles() {
+    s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
+        const fileList = document.getElementById('listFiles');
+        fileList.innerHTML = '';
+
+        if (err) {
+            alert("Storj connect karne me error aaya!");
+            console.log(err);
+            return;
+        }
+        
+        if(data.Contents.length === 0) {
+            fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
+            return;
+        }
+
+        data.Contents.forEach(function(content) {
+            const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: content.Key, Expires: 3600 });
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `
+                <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
+                <a href="${url}" target="_blank"><button class="download-btn">Download</button></a>
+            `;
+            fileList.appendChild(li);
+        });
+    });
+}
+
+function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    if (!file) { alert("Pehle koi file select karein!"); return; }
+
+    alert("File upload ho rahi hai... Kripya wait karein.");
+    s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+        if (err) { alert("Upload failed!"); console.log(err); } 
+        else { alert("File upload safal rahi!"); loadFiles(); }
+    });
+}
+
+function logout() {
+    document.getElementById('loginSection').style.display = 'block';
+    document.getElementById('cloudInterface').style.display = 'none';
+    document.getElementById('fileManager').style.display = 'none';
+    document.getElementById('userInput').value = '';
+    document.getElementById('passInput').value = '';
+    document.getElementById('accountSelect').value = '';
+}
+</script>
+</body>
+</html>
