@@ -22,10 +22,10 @@
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
         .back-btn { background: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-group { display: flex; gap: 8px; }
+        .btn-group { display: flex; gap: 8px; align-items: center; }
 
         /* LINEUP PROGRESS BAR STYLES */
-        .lineup-progress-container { width: 160px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; }
+        .lineup-progress-container { width: 140px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
@@ -99,7 +99,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
 let allUserKeys = {}; 
-let isUploading = false; // Tracks if a file is currently transferring
+let isUploading = false; 
+let currentUploadManagedRequest = null; // Holds the active S3 upload object for canceling
 
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
@@ -152,13 +153,11 @@ function loadFiles() {
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
         
-        // Find existing progress bar element to preserve its state
         const existingProgressItem = document.getElementById('tempUploadingItem');
         const currentProgressHTML = existingProgressItem ? existingProgressItem.outerHTML : '';
 
         fileList.innerHTML = '';
 
-        // If currently uploading, ensure progress tracker stays pinned to the top
         if (isUploading && currentProgressHTML) {
             fileList.innerHTML = currentProgressHTML;
         }
@@ -186,6 +185,7 @@ function loadFiles() {
                     <a href="${url}" download="${content.Key}">
                         <button class="download-btn" style="background: #10b981;">Download</button>
                     </a>
+                    <button class="download-btn" style="background: #ef4444;" onclick="deleteFile('${content.Key}')">Delete 🗑️</button>
                 </div>
             `;
             fileList.appendChild(li);
@@ -215,12 +215,39 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// FIXED INSTANT LINEUP PROGRESS
+// NEW FUNCTION: Cancel current uploading request safely
+function cancelUpload() {
+    if (currentUploadManagedRequest) {
+        currentUploadManagedRequest.abort(); // Force stops S3 data pipe network transfer
+        isUploading = false;
+        currentUploadManagedRequest = null;
+        const itemToRemove = document.getElementById('tempUploadingItem');
+        if (itemToRemove) itemToRemove.remove();
+        alert("Upload cancel kar diya gaya!");
+        loadFiles();
+    }
+}
+
+// NEW FUNCTION: Delete file directly from Storj bucket lineup
+function deleteFile(fileKey) {
+    if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
+        s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
+            if (err) {
+                alert("Delete karne me error aaya!");
+                console.log(err);
+            } else {
+                alert("File successfully delete ho gayi!");
+                loadFiles(); // Refresh list to reflect changes
+            }
+        });
+    }
+}
+
 function uploadFile() {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     if (!file) { alert("Pehle koi file select karein!"); return; }
-    if (isUploading) { alert("Pehle wali file upload ho rahi hai, kripya thoda wait karein!"); return; }
+    if (isUploading) { alert("Pehle se ek file upload ho rahi hai, kripya thoda rukein!"); return; }
 
     isUploading = true;
     const fileList = document.getElementById('listFiles');
@@ -229,37 +256,44 @@ function uploadFile() {
         fileList.innerHTML = '';
     }
 
-    // Immediately inject progress bar right into the UI row on first click
+    // Lineup element injection with cancel button attachment
     const tempLi = document.createElement('li');
     tempLi.className = 'file-item';
     tempLi.id = 'tempUploadingItem';
     tempLi.innerHTML = `
         <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
-        <div class="lineup-progress-container">
-            <div id="lineupBar" class="lineup-progress-bar" style="width: 0%;"></div>
-            <div id="lineupText" class="lineup-progress-text">0%</div>
+        <div class="btn-group">
+            <div class="lineup-progress-container">
+                <div id="lineupBar" class="lineup-progress-bar" style="width: 0%;"></div>
+                <div id="lineupText" class="lineup-progress-text">0%</div>
+            </div>
+            <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px;" onclick="cancelUpload()">Cancel ❌</button>
         </div>
     `;
     
     fileList.insertBefore(tempLi, fileList.firstChild);
 
-    const uploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+    // Save active stream instance to global control
+    currentUploadManagedRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
         isUploading = false;
+        currentUploadManagedRequest = null;
+        
         const itemToRemove = document.getElementById('tempUploadingItem');
         if (itemToRemove) itemToRemove.remove();
 
         if (err) { 
-            alert("Upload failed!"); 
-            console.log(err); 
+            if(err.code !== 'RequestAbortedError') {
+                alert("Upload failed!"); 
+                console.log(err); 
+            }
             loadFiles();
         } else { 
             fileInput.value = ''; 
-            loadFiles(); // Automatically list newly uploaded file
+            loadFiles(); 
         }
     });
 
-    // Instant data stream connection to update percentage loader row
-    uploadRequest.on('httpUploadProgress', function(progress) {
+    currentUploadManagedRequest.on('httpUploadProgress', function(progress) {
         const percentage = Math.round((progress.loaded / progress.total) * 100);
         const lineupBar = document.getElementById('lineupBar');
         const lineupText = document.getElementById('lineupText');
@@ -271,13 +305,13 @@ function uploadFile() {
 }
 
 function logout() {
+    if(isUploading) { cancelUpload(); }
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
     document.getElementById('userInput').value = '';
     document.getElementById('passInput').value = '';
     document.getElementById('accountSelect').value = '';
-    isUploading = false;
 }
 </script>
 </body>
