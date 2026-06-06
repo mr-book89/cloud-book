@@ -14,16 +14,16 @@
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* --- PREMIUM SECTION HEADING (PRECISE PHOTO MATCH) --- */
+        /* --- PREMIUM SECTION HEADING --- */
         .section-heading {
             font-size: 20px;
             color: #1e293b;
             font-weight: 700;
             margin: 30px 0 15px 0;
             padding-left: 12px;
-            border-left: 4px solid #2563eb; /* Left side premium blue bar */
+            border-left: 4px solid #2563eb;
             padding-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0; /* Bottom light divider line */
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
         }
@@ -44,12 +44,7 @@
             outline: none;
             -webkit-tap-highlight-color: transparent; 
         }
-        
-        button:hover { 
-            background: #1d4ed8 !important; 
-            border-color: #1d4ed8 !important;
-        }
-
+        button:hover { background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
         button:active { 
             background: #ffffff !important; 
             color: #2563eb !important; 
@@ -59,7 +54,45 @@
 
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
-        .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; align-items: center; }
+        
+        /* --- UPGRADED FILE ROW WITH IMAGE IMAGE VIEW --- */
+        .file-item { 
+            display: flex; 
+            justify-content: space-between; 
+            background: #f9fafb; 
+            padding: 10px 15px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            align-items: center; 
+        }
+        .file-info-zone {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 60%;
+        }
+        
+        /* --- GOOGLE DRIVE MINI PHOTO THUMBNAIL STYLE --- */
+        .file-thumbnail {
+            width: 42px;
+            height: 42px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .file-name-text {
+            font-size: 14px;
+            color: #334155;
+            font-weight: 500;
+            word-break: break-all;
+        }
         
         /* --- UTILITY BUTTONS (VIEW, DOWNLOAD, DELETE) --- */
         .download-btn { 
@@ -73,7 +106,6 @@
             transition: all 0.05s ease;
             -webkit-tap-highlight-color: transparent;
         }
-        
         .download-btn:active {
             background: #ffffff !important;
             color: #111827 !important;
@@ -82,21 +114,8 @@
         }
 
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
-        
-        .back-btn { 
-            background: #6b7280 !important; 
-            border: 2px solid #6b7280 !important; 
-            width: auto; 
-            padding: 8px 15px; 
-            float: right; 
-            margin: 0; 
-            font-size: 14px; 
-        }
-        .back-btn:active { 
-            background: #ffffff !important;
-            color: #6b7280 !important; 
-            border-color: #6b7280 !important; 
-        }
+        .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
+        .back-btn:active { background: #ffffff !important; color: #6b7280 !important; border-color: #6b7280 !important; }
         
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; align-items: center; }
@@ -225,6 +244,12 @@ function switchAccount() {
     loadFiles();
 }
 
+// Function to check if file format is an image asset
+function isImageFile(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
+}
+
 function loadFiles() {
     if (Object.keys(activeUploadRequests).length > 0) {
         return; 
@@ -257,8 +282,21 @@ function loadFiles() {
             
             const li = document.createElement('li');
             li.className = 'file-item';
+            
+            // Build Thumbnail preview row directly based on asset type matching
+            let iconOrThumbnailHTML = `<div class="file-thumbnail">📄</div>`;
+            if (isImageFile(content.Key)) {
+                iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
+            }
+
             li.innerHTML = `
-                <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
+                <div class="file-info-zone">
+                    ${iconOrThumbnailHTML}
+                    <div class="file-name-text">
+                        ${content.Key} <br>
+                        <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
+                    </div>
+                </div>
                 <div class="btn-group">
                     <button class="download-btn" style="background: #3b82f6;" onclick="previewFileDirectly('${content.Key}')">View</button>
                     <a href="${url}" download="${content.Key}">
@@ -308,10 +346,9 @@ function cancelUpload(uploadId) {
     }
 }
 
-// FIXED: Clean list-override check during delete actions
 function deleteFile(fileKey) {
     if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
+        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
         return;
     }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
@@ -340,7 +377,12 @@ function uploadFiles() {
         tempLi.className = 'file-item uploading-temp-item';
         tempLi.id = uploadId;
         tempLi.innerHTML = `
-            <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
+            <div class="file-info-zone">
+                <div class="file-thumbnail" style="color: #2563eb; font-size:14px; font-weight:bold;">⏳</div>
+                <div class="file-name-text" style="color: #2563eb; font-weight: bold;">
+                    Uploading: ${file.name}
+                </div>
+            </div>
             <div class="btn-group">
                 <div class="lineup-progress-container">
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
