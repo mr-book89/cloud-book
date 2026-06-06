@@ -368,7 +368,7 @@ function closePreview() {
 function cancelUpload(uploadId) {
     const request = activeUploadRequests[uploadId];
     if (request) {
-        request.abort(); // Triggers standard S3 abort mechanism
+        request.abort(); 
         delete activeUploadRequests[uploadId];
         const row = document.getElementById(uploadId);
         if (row) row.remove();
@@ -392,7 +392,6 @@ function deleteFile(fileKey) {
     }
 }
 
-// UPGRADED MULTIPART PARALLEL UPLOAD ENGINE FOR EXTRA SPEED
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -410,6 +409,8 @@ function uploadFiles() {
         const tempLi = document.createElement('li');
         tempLi.className = 'file-item uploading-temp-item';
         tempLi.id = uploadId;
+        
+        // FIXED: EMOJI REMOVED FROM CANCEL BUTTON LINEUP
         tempLi.innerHTML = `
             <div class="file-info-zone">
                 <div class="file-thumbnail" style="color: #2563eb; font-size:14px; font-weight:bold;">⏳</div>
@@ -422,16 +423,15 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444; width:auto; margin:0;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
+                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444; width:auto; margin:0;" onclick="cancelUpload('${uploadId}')">Cancel</button>
             </div>
         `;
         
         fileList.insertBefore(tempLi, fileList.firstChild);
 
-        // s3.upload using concurrent smart multi-part data chunks
         const options = { 
-            queueSize: 4,          // Uploads 4 parts simultaneously in parallel streams
-            partSize: 5 * 1024 * 1024 // Splits file into robust 5MB chunks
+            queueSize: 4,          
+            partSize: 5 * 1024 * 1024 
         };
 
         const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, options, function(err, data) {
