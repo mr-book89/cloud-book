@@ -112,8 +112,8 @@
             transform: scale(0.94);
         }
 
-        /* BULLETPROOF FORCE-STYLE FOR CANCEL BUTTON */
-        .cancel-btn-clean {
+        /* HARD-FIX STYLE FOR CLEAN CANCEL BUTTON */
+        .btn-cancel-override {
             background: #ef4444 !important; 
             color: #ffffff !important;
             padding: 4px 10px !important; 
@@ -208,7 +208,6 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
-// Explicit Runtime Overwrite
 function forceApplyTextChanges() {
     const mainTitle = document.getElementById('mainDashboardTitle');
     const welcome = document.getElementById('welcomeText');
@@ -424,7 +423,7 @@ function uploadFiles() {
         tempLi.className = 'file-item uploading-temp-item';
         tempLi.id = uploadId;
         
-        // UPGRADED WITH ULTRA-CLEAN NEW HTML TARGET CLASS
+        // NO EMOJI AT ALL HERE
         tempLi.innerHTML = `
             <div class="file-info-zone">
                 <div class="file-thumbnail" style="color: #2563eb; font-size:14px; font-weight:bold;">⏳</div>
@@ -437,11 +436,18 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="cancel-btn-clean" onclick="cancelUpload('${uploadId}')">Cancel</button>
+                <button class="btn-cancel-override" id="btn_click_${uploadId}">Cancel</button>
             </div>
         `;
         
         fileList.insertBefore(tempLi, fileList.firstChild);
+
+        // Explicitly dynamic trigger to force content text as standard format
+        const targetBtn = document.getElementById('btn_click_' + uploadId);
+        if(targetBtn) {
+            targetBtn.innerText = "Cancel"; 
+            targetBtn.onclick = function() { cancelUpload(uploadId); };
+        }
 
         const options = { 
             queueSize: 4,          
