@@ -145,6 +145,16 @@ function loadFiles() {
             console.log(err);
             return;
         }
+        function loadFiles() {
+    s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
+        const fileList = document.getElementById('listFiles');
+        fileList.innerHTML = '';
+
+        if (err) {
+            alert("Storj connect karne me error aaya!");
+            console.log(err);
+            return;
+        }
         
         if(data.Contents.length === 0) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
@@ -158,14 +168,23 @@ function loadFiles() {
                 Expires: 3600
             });
             
+            // GOOGLE DOCS VIEWER TRICK: CORS problem bypassed!
+            const googleViewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(url) + "&embedded=true";
+
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
                 <span>📄 ${content.Key} (${(content.Size/1024/1024).toFixed(2)} MB)</span>
                 <div style="display: flex; gap: 10px;">
-                    <a href="${url}" target="_blank" rel="noopener noreferrer"><button class="download-btn" style="background: #3b82f6; width: auto; margin: 0;">View</button></a>
+                    <!-- VIEW BUTTON: Opens in a clean online viewer -->
+                    <a href="${googleViewerUrl}" target="_blank" rel="noopener noreferrer">
+                        <button class="download-btn" style="background: #3b82f6; width: auto; margin: 0;">View</button>
+                    </a>
                     
-                    <a href="${url}" download="${content.Key}"><button class="download-btn" style="background: #10b981; width: auto; margin: 0;">Download</button></a>
+                    <!-- DOWNLOAD BUTTON: Direct download link -->
+                    <a href="${url}" download="${content.Key}">
+                        <button class="download-btn" style="background: #10b981; width: auto; margin: 0;">Download</button>
+                    </a>
                 </div>
             `;
             fileList.appendChild(li);
