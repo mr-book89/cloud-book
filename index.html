@@ -112,6 +112,19 @@
             transform: scale(0.94);
         }
 
+        /* BULLETPROOF FORCE-STYLE FOR CANCEL BUTTON */
+        .cancel-btn-clean {
+            background: #ef4444 !important; 
+            color: #ffffff !important;
+            padding: 4px 10px !important; 
+            font-size: 12px !important; 
+            border-color: #ef4444 !important; 
+            width: auto !important; 
+            margin: 0 !important;
+            font-weight: 600 !important;
+            border-radius: 4px !important;
+        }
+
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         
@@ -195,6 +208,7 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
+// Explicit Runtime Overwrite
 function forceApplyTextChanges() {
     const mainTitle = document.getElementById('mainDashboardTitle');
     const welcome = document.getElementById('welcomeText');
@@ -410,7 +424,7 @@ function uploadFiles() {
         tempLi.className = 'file-item uploading-temp-item';
         tempLi.id = uploadId;
         
-        // FIXED: EMOJI REMOVED FROM CANCEL BUTTON LINEUP
+        // UPGRADED WITH ULTRA-CLEAN NEW HTML TARGET CLASS
         tempLi.innerHTML = `
             <div class="file-info-zone">
                 <div class="file-thumbnail" style="color: #2563eb; font-size:14px; font-weight:bold;">⏳</div>
@@ -423,7 +437,7 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444; width:auto; margin:0;" onclick="cancelUpload('${uploadId}')">Cancel</button>
+                <button class="cancel-btn-clean" onclick="cancelUpload('${uploadId}')">Cancel</button>
             </div>
         `;
         
