@@ -25,9 +25,9 @@
         .btn-group { display: flex; gap: 8px; }
 
         /* LINEUP PROGRESS BAR STYLES */
-        .lineup-progress-container { width: 150px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 16px; position: relative; }
-        .lineup-progress-bar { background-color: #3b82f6; height: 100%; width: 0%; transition: width 0.1s linear; }
-        .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 16px; }
+        .lineup-progress-container { width: 160px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; }
+        .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.1s linear; }
+        .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
         /* PREVIEW POPUP MODAL */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
@@ -151,11 +151,11 @@ function loadFiles() {
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
         
-        // Save temporary uploading item if it exists
+        // Save temporary item if it exists before clearing list
         const tempUploadingItem = document.getElementById('tempUploadingItem');
         fileList.innerHTML = '';
 
-        // If something is uploading, keep it at the top of the lineup
+        // If something is uploading, keep it locked at the very top
         if (tempUploadingItem) {
             fileList.appendChild(tempUploadingItem);
         }
@@ -212,7 +212,7 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// NEW LINEUP PROGRESS LOGIC (Google Drive Style List Integration)
+// FIXED: Direct Integration into Lineup (Floating completely removed)
 function uploadFile() {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
@@ -220,12 +220,11 @@ function uploadFile() {
 
     const fileList = document.getElementById('listFiles');
     
-    // Check if "Locker khali hai" text exists and clear it
     if(fileList.innerHTML.includes('Locker khali hai')) {
         fileList.innerHTML = '';
     }
 
-    // Create a temporary row right inside the list lineup at the top
+    // Create lineup progress element at the top
     const tempLi = document.createElement('li');
     tempLi.className = 'file-item';
     tempLi.id = 'tempUploadingItem';
@@ -237,14 +236,12 @@ function uploadFile() {
         </div>
     `;
     
-    // Insert at the very top of the list lineup
     fileList.insertBefore(tempLi, fileList.firstChild);
 
     const lineupBar = document.getElementById('lineupBar');
     const lineupText = document.getElementById('lineupText');
 
     const uploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
-        // Remove the temporary progress item once finished
         const itemToRemove = document.getElementById('tempUploadingItem');
         if (itemToRemove) itemToRemove.remove();
 
@@ -254,11 +251,10 @@ function uploadFile() {
             loadFiles();
         } else { 
             fileInput.value = ''; 
-            loadFiles(); // Automatically updates the list and turns the item into a regular file with View/Download buttons
+            loadFiles(); // Refreshes lineup and turns row into regular file row
         }
     });
 
-    // Update percentage directly in the list row
     uploadRequest.on('httpUploadProgress', function(progress) {
         const percentage = Math.round((progress.loaded / progress.total) * 100);
         if(lineupBar && lineupText) {
