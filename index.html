@@ -26,7 +26,7 @@
 
         /* LINEUP PROGRESS BAR STYLES */
         .lineup-progress-container { width: 160px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; }
-        .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.1s linear; }
+        .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
         /* PREVIEW POPUP MODAL */
@@ -99,6 +99,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
 let allUserKeys = {}; 
+let isUploading = false; // Tracks if a file is currently transferring
 
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
@@ -151,13 +152,15 @@ function loadFiles() {
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
         
-        // Save temporary item if it exists before clearing list
-        const tempUploadingItem = document.getElementById('tempUploadingItem');
+        // Find existing progress bar element to preserve its state
+        const existingProgressItem = document.getElementById('tempUploadingItem');
+        const currentProgressHTML = existingProgressItem ? existingProgressItem.outerHTML : '';
+
         fileList.innerHTML = '';
 
-        // If something is uploading, keep it locked at the very top
-        if (tempUploadingItem) {
-            fileList.appendChild(tempUploadingItem);
+        // If currently uploading, ensure progress tracker stays pinned to the top
+        if (isUploading && currentProgressHTML) {
+            fileList.innerHTML = currentProgressHTML;
         }
 
         if (err) {
@@ -166,7 +169,7 @@ function loadFiles() {
             return;
         }
         
-        if(data.Contents.length === 0 && !tempUploadingItem) {
+        if(data.Contents.length === 0 && !isUploading) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
             return;
         }
@@ -212,36 +215,36 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// FIXED: Direct Integration into Lineup (Floating completely removed)
+// FIXED INSTANT LINEUP PROGRESS
 function uploadFile() {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     if (!file) { alert("Pehle koi file select karein!"); return; }
+    if (isUploading) { alert("Pehle wali file upload ho rahi hai, kripya thoda wait karein!"); return; }
 
+    isUploading = true;
     const fileList = document.getElementById('listFiles');
     
     if(fileList.innerHTML.includes('Locker khali hai')) {
         fileList.innerHTML = '';
     }
 
-    // Create lineup progress element at the top
+    // Immediately inject progress bar right into the UI row on first click
     const tempLi = document.createElement('li');
     tempLi.className = 'file-item';
     tempLi.id = 'tempUploadingItem';
     tempLi.innerHTML = `
         <span style="color: #2563eb; font-weight: bold;">⏳ Uploading: ${file.name}</span>
         <div class="lineup-progress-container">
-            <div id="lineupBar" class="lineup-progress-bar"></div>
+            <div id="lineupBar" class="lineup-progress-bar" style="width: 0%;"></div>
             <div id="lineupText" class="lineup-progress-text">0%</div>
         </div>
     `;
     
     fileList.insertBefore(tempLi, fileList.firstChild);
 
-    const lineupBar = document.getElementById('lineupBar');
-    const lineupText = document.getElementById('lineupText');
-
     const uploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+        isUploading = false;
         const itemToRemove = document.getElementById('tempUploadingItem');
         if (itemToRemove) itemToRemove.remove();
 
@@ -251,12 +254,15 @@ function uploadFile() {
             loadFiles();
         } else { 
             fileInput.value = ''; 
-            loadFiles(); // Refreshes lineup and turns row into regular file row
+            loadFiles(); // Automatically list newly uploaded file
         }
     });
 
+    // Instant data stream connection to update percentage loader row
     uploadRequest.on('httpUploadProgress', function(progress) {
         const percentage = Math.round((progress.loaded / progress.total) * 100);
+        const lineupBar = document.getElementById('lineupBar');
+        const lineupText = document.getElementById('lineupText');
         if(lineupBar && lineupText) {
             lineupBar.style.width = percentage + '%';
             lineupText.innerText = percentage + '%';
@@ -271,6 +277,7 @@ function logout() {
     document.getElementById('userInput').value = '';
     document.getElementById('passInput').value = '';
     document.getElementById('accountSelect').value = '';
+    isUploading = false;
 }
 </script>
 </body>
