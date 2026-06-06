@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mera Secure 200GB Cloud</title>
+    <title>Cloud Book</title>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -93,10 +93,10 @@
             word-break: break-all;
         }
         
-        /* --- NEW: COMPACT & CHOTE SIZE KE ROW BUTTONS --- */
+        /* --- COMPACT & CHOTE SIZE KE ROW BUTTONS --- */
         .download-btn { 
-            padding: 5px 10px !important; /* Chota padding for clean compact look */
-            font-size: 12px !important;    /* Chota font size */
+            padding: 5px 10px !important; 
+            font-size: 12px !important;    
             width: auto !important; 
             margin: 0 !important; 
             border-radius: 4px !important; 
@@ -132,7 +132,7 @@
 <body>
 
 <div class="container">
-    <h1>☁️ Personal Secure Cloud Dashboard</h1>
+    <h1>☁️ Cloud Dashboard</h1>
     
     <div id="loginSection">
         <div class="form-group">
@@ -148,9 +148,9 @@
 
     <div id="cloudInterface">
         <button class="back-btn" onclick="logout()">Logout</button>
-        <h2>Welcome Back!</h2>
+        <h2>Welcome !</h2>
         <div class="form-group">
-            <label>Kis Storj Account ka Storage chalana hai?</label>
+            <label>Select Your Book</label>
             <select id="accountSelect" onchange="switchAccount()">
                 <option value="">-- Account Select Karein --</option>
                 <option value="acc1">Book 1</option>
@@ -288,7 +288,6 @@ function loadFiles() {
                 iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
             }
 
-            // BACK TO ORIGINAL DIRECTIONAL BUTTON LAYOUT WITH COMPACT MINI STYLES
             li.innerHTML = `
                 <div class="file-info-zone">
                     ${iconOrThumbnailHTML}
