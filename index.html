@@ -99,7 +99,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
 let allUserKeys = {}; 
-let activeUploadRequests = {}; // Track all ongoing uploads by unique IDs
+let activeUploadRequests = {}; 
 
 async function handleLogin() {
     const user = document.getElementById('userInput').value;
@@ -149,16 +149,14 @@ function switchAccount() {
 }
 
 function loadFiles() {
+    // FIXED: If multiple files are uploading right now, do NOT let background fetch override the list
+    if (Object.keys(activeUploadRequests).length > 0) {
+        return; 
+    }
+
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
-        
-        // Save all ongoing progress HTML rows before clearing the container list
-        const activeProgressRows = [];
-        document.querySelectorAll('.uploading-temp-item').forEach(item => {
-            activeProgressRows.push(item.outerHTML);
-        });
-
-        fileList.innerHTML = activeProgressRows.join('');
+        fileList.innerHTML = '';
 
         if (err) {
             alert("Storj connect karne me error aaya!");
@@ -166,8 +164,7 @@ function loadFiles() {
             return;
         }
         
-        const totalUploadingCount = Object.keys(activeUploadRequests).length;
-        if(data.Contents.length === 0 && totalUploadingCount === 0) {
+        if(data.Contents.length === 0) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
             return;
         }
@@ -214,7 +211,6 @@ function closePreview() {
     document.getElementById('previewModal').style.display = "none";
 }
 
-// Safely stop a specific transfer without breaking baki updates
 function cancelUpload(uploadId) {
     const request = activeUploadRequests[uploadId];
     if (request) {
@@ -229,7 +225,12 @@ function cancelUpload(uploadId) {
     }
 }
 
+// FIXED: Clean list-override check during delete actions
 function deleteFile(fileKey) {
+    if (Object.keys(activeUploadRequests).length > 0) {
+        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
+        return;
+    }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
         s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
             if (err) { alert("Delete karne me error aaya!"); console.log(err); } 
@@ -238,7 +239,7 @@ function deleteFile(fileKey) {
     }
 }
 
-// NEW ENGINE: Handles one or multiple files in parallel streams
+// UPGRADED STABLE PARALLEL UPLOAD ENGINE
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -250,9 +251,7 @@ function uploadFiles() {
         fileList.innerHTML = '';
     }
 
-    // Process each selected file concurrently
     Array.from(files).forEach((file) => {
-        // Create an absolutely unique ID for this specific row asset
         const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
         const tempLi = document.createElement('li');
@@ -269,9 +268,9 @@ function uploadFiles() {
             </div>
         `;
         
+        // Always insert at the top of the lineup
         fileList.insertBefore(tempLi, fileList.firstChild);
 
-        // Fire individual AWS connection instances
         const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
             delete activeUploadRequests[uploadId];
             const rowToRemove = document.getElementById(uploadId);
@@ -284,16 +283,14 @@ function uploadFiles() {
                 }
             }
             
-            // Only fire layout refresh when no other active stream is running
+            // Trigger UI list refresh ONLY when all parallel files are completely finished
             if (Object.keys(activeUploadRequests).length === 0) {
                 loadFiles();
             }
         });
 
-        // Save reference mapping 
         activeUploadRequests[uploadId] = currentUploadRequest;
 
-        // Dedicated live progress routing
         currentUploadRequest.on('httpUploadProgress', function(progress) {
             const percentage = Math.round((progress.loaded / progress.total) * 100);
             const specificBar = document.getElementById('bar_' + uploadId);
@@ -305,7 +302,7 @@ function uploadFiles() {
         });
     });
 
-    fileInput.value = ''; // Reset target input box instantly
+    fileInput.value = ''; 
 }
 
 function logout() {
