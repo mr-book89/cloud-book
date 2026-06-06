@@ -195,7 +195,6 @@ let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
 
-// BULLETPROOF ENGINE: Page khulte hi ya login hote hi text force-change ho jayega
 function forceApplyTextChanges() {
     const mainTitle = document.getElementById('mainDashboardTitle');
     const welcome = document.getElementById('welcomeText');
@@ -205,7 +204,6 @@ function forceApplyTextChanges() {
     if(welcome) welcome.innerHTML = "Welcome !";
     if(labelBook) labelBook.innerHTML = "Select Your Book";
     
-    // Dropdown elements list update
     const selectBox = document.getElementById('accountSelect');
     if(selectBox) {
         const customLabels = {
@@ -226,7 +224,6 @@ function forceApplyTextChanges() {
     }
 }
 
-// Automatically execute text overwrite on window load
 window.onload = function() {
     forceApplyTextChanges();
 };
@@ -251,7 +248,7 @@ async function handleLogin() {
         allUserKeys = data.storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
-        forceApplyTextChanges(); // Double check shift logic on login event
+        forceApplyTextChanges();
     }
 }
 
@@ -371,7 +368,7 @@ function closePreview() {
 function cancelUpload(uploadId) {
     const request = activeUploadRequests[uploadId];
     if (request) {
-        request.abort();
+        request.abort(); // Triggers standard S3 abort mechanism
         delete activeUploadRequests[uploadId];
         const row = document.getElementById(uploadId);
         if (row) row.remove();
@@ -395,6 +392,7 @@ function deleteFile(fileKey) {
     }
 }
 
+// UPGRADED MULTIPART PARALLEL UPLOAD ENGINE FOR EXTRA SPEED
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -430,7 +428,13 @@ function uploadFiles() {
         
         fileList.insertBefore(tempLi, fileList.firstChild);
 
-        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
+        // s3.upload using concurrent smart multi-part data chunks
+        const options = { 
+            queueSize: 4,          // Uploads 4 parts simultaneously in parallel streams
+            partSize: 5 * 1024 * 1024 // Splits file into robust 5MB chunks
+        };
+
+        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, options, function(err, data) {
             delete activeUploadRequests[uploadId];
             const rowToRemove = document.getElementById(uploadId);
             if (rowToRemove) rowToRemove.remove();
