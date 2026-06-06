@@ -14,11 +14,11 @@
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* --- MAIN BUTTON STYLES WITH BLINK EFFECT --- */
+        /* --- DYNAMIC BUTTON STYLES WITH TAP/BLINK ENGINE --- */
         button { 
-            background: #2563eb; 
-            color: white; 
-            border: 2px solid #2563eb; 
+            background: #2563eb !important; 
+            color: #ffffff !important; 
+            border: 2px solid #2563eb !important; 
             padding: 12px 20px; 
             border-radius: 6px; 
             cursor: pointer; 
@@ -26,46 +26,64 @@
             width: 100%; 
             margin-top: 10px; 
             font-weight: bold;
-            transition: all 0.1s ease; /* Fast transition for instant response */
+            transition: all 0.05s ease-in-out; /* Instant reaction style */
             outline: none;
+            -webkit-tap-highlight-color: transparent; /* Removes default mobile shadow */
         }
+        
         button:hover { 
-            background: #1d4ed8; 
-            border-color: #1d4ed8;
+            background: #1d4ed8 !important; 
+            border-color: #1d4ed8 !important;
         }
-        /* Touch/Click Effect: Becomes White with Blue text instantly */
+
+        /* HARD VISUAL TOUCH BLINK: Click/Touch karte hi background WHITE aur text BLUE hoga */
         button:active { 
             background: #ffffff !important; 
             color: #2563eb !important; 
             border-color: #2563eb !important;
-            transform: scale(0.98); /* Slight shrink for click feel */
+            transform: scale(0.97); /* Button press feel */
         }
 
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; align-items: center; }
         
-        /* --- VIEW, DOWNLOAD, DELETE BUTTONS STYLES --- */
+        /* --- UTILITY BUTTONS (VIEW, DOWNLOAD, DELETE) --- */
         .download-btn { 
             padding: 6px 14px; 
             font-size: 14px; 
             width: auto; 
             margin: 0; 
-            color: white; 
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: bold;
-            transition: all 0.1s ease;
+            transition: all 0.05s ease;
+            -webkit-tap-highlight-color: transparent;
         }
-        /* View/Download/Delete individual active click states */
+        
         .download-btn:active {
             background: #ffffff !important;
-            transform: scale(0.95);
+            color: #111827 !important;
+            border-color: #cbd5e1 !important;
+            transform: scale(0.94);
         }
 
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
-        .back-btn { background: #6b7280; border-color: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
-        .back-btn:active { color: #6b7280 !important; border-color: #6b7280 !important; }
+        
+        .back-btn { 
+            background: #6b7280 !important; 
+            border: 2px solid #6b7280 !important; 
+            width: auto; 
+            padding: 8px 15px; 
+            float: right; 
+            margin: 0; 
+            font-size: 14px; 
+        }
+        .back-btn:active { 
+            background: #ffffff !important;
+            color: #6b7280 !important; 
+            border-color: #6b7280 !important; 
+        }
         
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; align-items: center; }
@@ -279,7 +297,7 @@ function cancelUpload(uploadId) {
 
 function deleteFile(fileKey) {
     if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
+        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
         return;
     }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
