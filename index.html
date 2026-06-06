@@ -28,7 +28,7 @@
             align-items: center;
         }
 
-        /* --- DYNAMIC BUTTON STYLES WITH TAP/BLINK ENGINE --- */
+        /* --- BUTTON STATES --- */
         button { 
             background: #2563eb !important; 
             color: #ffffff !important; 
@@ -55,7 +55,7 @@
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         
-        /* --- UPGRADED FILE ROW WITH IMAGE IMAGE VIEW --- */
+        /* --- FILE ROW LAYOUT --- */
         .file-item { 
             display: flex; 
             justify-content: space-between; 
@@ -70,10 +70,9 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            max-width: 60%;
+            max-width: 55%;
         }
         
-        /* --- GOOGLE DRIVE MINI PHOTO THUMBNAIL STYLE --- */
         .file-thumbnail {
             width: 42px;
             height: 42px;
@@ -94,39 +93,38 @@
             word-break: break-all;
         }
         
-        /* --- UTILITY BUTTONS (VIEW, DOWNLOAD, DELETE) --- */
+        /* --- NEW: COMPACT & CHOTE SIZE KE ROW BUTTONS --- */
         .download-btn { 
-            padding: 6px 14px; 
-            font-size: 14px; 
-            width: auto; 
-            margin: 0; 
-            border-radius: 6px; 
+            padding: 5px 10px !important; /* Chota padding for clean compact look */
+            font-size: 12px !important;    /* Chota font size */
+            width: auto !important; 
+            margin: 0 !important; 
+            border-radius: 4px !important; 
             cursor: pointer; 
-            font-weight: bold;
+            font-weight: 600 !important;
             transition: all 0.05s ease;
+            border: none !important;
             -webkit-tap-highlight-color: transparent;
         }
         .download-btn:active {
             background: #ffffff !important;
             color: #111827 !important;
-            border-color: #cbd5e1 !important;
             transform: scale(0.94);
         }
 
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
-        .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
-        .back-btn:active { background: #ffffff !important; color: #6b7280 !important; border-color: #6b7280 !important; }
+        .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-group { display: flex; gap: 8px; align-items: center; }
+        .btn-group { display: flex; gap: 6px; align-items: center; }
 
         /* LINEUP PROGRESS BAR STYLES */
-        .lineup-progress-container { width: 140px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
+        .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
 
         /* PREVIEW POPUP MODAL */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
         .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
     </style>
@@ -239,7 +237,10 @@ function switchAccount() {
     });
 
     s3 = new AWS.S3();
-    document.getElementById('activeAccountTitle').innerText = "Connected: " + document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
+    
+    const selectedText = document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
+    document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
+    
     document.getElementById('fileManager').style.display = 'block';
     loadFiles();
 }
@@ -287,6 +288,7 @@ function loadFiles() {
                 iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
             }
 
+            // BACK TO ORIGINAL DIRECTIONAL BUTTON LAYOUT WITH COMPACT MINI STYLES
             li.innerHTML = `
                 <div class="file-info-zone">
                     ${iconOrThumbnailHTML}
@@ -300,7 +302,7 @@ function loadFiles() {
                     <a href="${url}" download="${content.Key}">
                         <button class="download-btn" style="background: #10b981;">Download</button>
                     </a>
-                    <button class="download-btn" style="background: #ef4444;" onclick="deleteFile('${content.Key}')">Delete 🗑️</button>
+                    <button class="download-btn" style="background: #ef4444;" onclick="deleteFile('${content.Key}')">Delete</button>
                 </div>
             `;
             fileList.appendChild(li);
@@ -308,7 +310,6 @@ function loadFiles() {
     });
 }
 
-// Inline Image Viewer 
 function previewFileDirectly(fileKey) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('previewImg');
@@ -347,7 +348,7 @@ function cancelUpload(uploadId) {
 
 function deleteFile(fileKey) {
     if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
+        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
         return;
     }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
@@ -387,7 +388,7 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
+                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444; width:auto; margin:0;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
             </div>
         `;
         
