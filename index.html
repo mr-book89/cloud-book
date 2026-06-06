@@ -40,19 +40,19 @@
         .file-list { list-style: none; padding: 0; }
         
         /* --- FILE & FOLDER ITEM LAYOUT --- */
-        .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; align-items: center; position: relative; }
-        .file-item.folder-row-style { background: #f8fafc; border-color: #cbd5e1; cursor: pointer; }
+        .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; align-items: center; position: relative; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+        .file-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .file-item.folder-row-style { background: #f8fafc; border-color: #cbd5e1; }
         .file-item.folder-row-style:hover { background: #f1f5f9; }
         .file-info-zone { display: flex; align-items: center; gap: 12px; max-width: 75%; }
         
-        /* SLEEK PREMIUM REPLACEMENT FOR RECTANGLE BOXES */
         .folder-svg-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; fill: #3b82f6; }
         .file-thumbnail { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; background: #e2e8f0; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #475569; flex-shrink: 0; }
         .file-name-text { font-size: 14px; color: #334155; font-weight: 500; word-break: break-all; }
         
         /* MODERN 3-DOT MENU STYLES */
         .three-dot-btn { background: transparent !important; border: none !important; color: #64748b !important; font-size: 22px !important; font-weight: bold !important; cursor: pointer; width: auto !important; padding: 0 8px !important; margin: 0 !important; border-radius: 50%; display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; transition: background 0.2s; }
-        .three-dot-btn:hover { background: #e2e8f0 !important; color: #1e293b !important; }
+        .three-dot-btn:hover { background: #cbd5e1 !important; color: #1e293b !important; }
         
         /* DROP DOWN MODAL MENU LAYER */
         .context-menu-dropdown { display: none; position: absolute; right: 15px; top: 45px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 999; min-width: 150px; overflow: hidden; padding: 4px 0; }
@@ -322,7 +322,6 @@ function loadFiles() {
     });
 }
 
-// TOGGLE CONTEXT MENUS MANAGEMENT
 function toggleContextMenu(event, menuId) {
     event.stopPropagation();
     const targetMenu = document.getElementById(menuId);
@@ -337,7 +336,6 @@ function closeAllOpenContextMenus() {
     });
 }
 
-// CORE ADVANCED DRIVE UTILITIES ENGINE FUNCTIONS (RENAME, COPY, MOVE, SHARE, INFO)
 function runRenameEngine(oldKey, isFolder = false) {
     closeAllOpenContextMenus();
     const promptText = isFolder ? "Folder ka naya naam likhein:" : "File ka naya naam (extension ke sath) likhein:";
@@ -349,7 +347,6 @@ function runRenameEngine(oldKey, isFolder = false) {
     let newKey = "";
     if(isFolder) {
         newKey = newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/";
-        alert("Folder structure key logic updates sync ho rahi hain...");
         renameFolderObjectsRecursive(oldKey, newKey);
     } else {
         const pathParts = oldKey.split('/');
@@ -361,7 +358,7 @@ function runRenameEngine(oldKey, isFolder = false) {
 
 function runShareEngine(fileKey) {
     closeAllOpenContextMenus();
-    const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 }); // 24 Hours Share Link
+    const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 });
     navigator.clipboard.writeText(url).then(() => {
         alert("Success: Signed download link clipboard par copy ho gaya hai! (Valid for 24 hours)");
     }).catch(err => {
@@ -373,7 +370,6 @@ function runFileInfoEngine(key, sizeBytes, modifiedDate) {
     closeAllOpenContextMenus();
     const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
     const extension = key.split('.').pop().toUpperCase();
-    
     alert(`📄 [FILE DETAILS INFO]\n\n• Key Path: ${key}\n• File Size: ${sizeMB} MB (${sizeBytes} bytes)\n• Type/Ext: ${extension}\n• Last Modified: ${modifiedDate || 'N/A'}`);
 }
 
@@ -386,18 +382,16 @@ function runFolderInfoEngine(folderName) {
     alert(`📁 [FOLDER DETAILS INFO]\n\n• Name: ${folderName}\n• Nested Items: ${count} files\n• Total Directory Size: ${(size/1024/1024).toFixed(2)} MB`);
 }
 
-function runMoveCopyEngine(oldKey, operationMode) { // operationMode: 'move' or 'copy'
+function runMoveCopyEngine(oldKey, operationMode) {
     closeAllOpenContextMenus();
     let destinationFolder = prompt("Target destination folder ka naam likhein (Main branch ke liye 'root' likhein):");
     if(destinationFolder === null) return;
     
     destinationFolder = destinationFolder.trim().replace(/[\/\\?%*:|"<>. ]/g, "_");
     const filename = oldKey.split('/').pop();
-    
     let newKey = (destinationFolder.toLowerCase() === "root" || destinationFolder === "") ? filename : destinationFolder + "/" + filename;
     
-    if(oldKey === newKey) { alert("Error: Origin aur Target paths bilkul same hain!"); return; }
-    
+    if(oldKey === newKey) { alert("Error: Origin aur Target paths paths bilkul same hain!"); return; }
     executeS3CopyMoveOperation(oldKey, newKey, operationMode === 'move');
 }
 
@@ -409,11 +403,7 @@ function executeS3CopyMoveOperation(sourceKey, targetKey, shouldDeleteOriginal =
     };
 
     s3.copyObject(copyParams, function(copyErr, copyData) {
-        if (copyErr) {
-            alert("Operation failed! Check console for metadata object naming issues.");
-            console.error(copyErr);
-            return;
-        }
+        if (copyErr) { alert("Operation failed!"); return; }
         if (shouldDeleteOriginal) {
             s3.deleteObject({ Bucket: currentBucket, Key: sourceKey }, function(delErr) {
                 syncAndRefreshLocalState();
@@ -452,10 +442,9 @@ function renameFolderObjectsRecursive(oldFolderPrefix, newFolderPrefix) {
 
 function runFolderDeleteEngine(folderPrefix) {
     closeAllOpenContextMenus();
-    if(confirm(`🚨 WARNING: Kya aap sach me folder '${folderPrefix}' aur uske andar ka saari files hamesha ke liye udana chahte hain?`)) {
+    if(confirm(`🚨 WARNING: Kya aap sach me folder '${folderPrefix}' ko hamesha ke liye udana chahte hain?`)) {
         s3.listObjectsV2({ Bucket: currentBucket, Prefix: folderPrefix + "/" }, function(err, data) {
             if(err || !data.Contents || data.Contents.length === 0) {
-                // If clean virtual slot, force pass standard check triggers
                 loadFiles(); return;
             }
             let deletedCount = 0;
@@ -476,7 +465,6 @@ function syncAndRefreshLocalState() {
     });
 }
 
-// RENDER SCHEDULER IMPLEMENTATION WITHOUT ANY RECTANGLE "DIR" BOX OR PLAIN TEXT NAV LINK BUTTONS
 function renderFilesFromCache() {
     const fileList = document.getElementById('listFiles');
     const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
@@ -514,8 +502,9 @@ function renderFilesFromCache() {
 
     updateFolderDropdownUI();
 
-    // RENDER FOLDERS WITH THE NEW PREMIUM REPLACEMENT VECTOR DESIGNS
     let uniqueIdCounter = 0;
+    
+    // RENDER FOLDERS (Single Click to open)
     trackingSubFoldersInCurrentDir.forEach(folderName => {
         if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
         if(currentSelectedActiveTabType !== 'all') return;
@@ -550,7 +539,7 @@ function renderFilesFromCache() {
         fileList.appendChild(li);
     });
 
-    // RENDER RESTRUCTURING ACTIVE FILES LIST
+    // RENDER FILES (UPDATED: Single Touch on Row triggers Single Click Preview)
     itemsToRender.forEach(function(item) {
         uniqueIdCounter++;
         const content = item.data;
@@ -579,6 +568,10 @@ function renderFilesFromCache() {
 
         const li = document.createElement('li');
         li.className = 'file-item';
+        
+        // FIXED: Added direct onclick action target on the root item row itself
+        li.setAttribute('onclick', `previewFileDirectly('${originalKey}')`);
+        
         li.innerHTML = `
             <div class="file-info-zone">
                 ${iconOrThumbnailHTML}
