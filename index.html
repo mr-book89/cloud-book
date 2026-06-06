@@ -13,14 +13,60 @@
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        button { background: #2563eb; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; font-weight: bold; }
-        button:hover { background: #1d4ed8; }
+        
+        /* --- MAIN BUTTON STYLES WITH BLINK EFFECT --- */
+        button { 
+            background: #2563eb; 
+            color: white; 
+            border: 2px solid #2563eb; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            width: 100%; 
+            margin-top: 10px; 
+            font-weight: bold;
+            transition: all 0.1s ease; /* Fast transition for instant response */
+            outline: none;
+        }
+        button:hover { 
+            background: #1d4ed8; 
+            border-color: #1d4ed8;
+        }
+        /* Touch/Click Effect: Becomes White with Blue text instantly */
+        button:active { 
+            background: #ffffff !important; 
+            color: #2563eb !important; 
+            border-color: #2563eb !important;
+            transform: scale(0.98); /* Slight shrink for click feel */
+        }
+
         #fileManager, #cloudInterface { display: none; margin-top: 30px; }
         .file-list { list-style: none; padding: 0; }
         .file-item { display: flex; justify-content: space-between; background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; align-items: center; }
-        .download-btn { padding: 6px 14px; font-size: 14px; width: auto; margin: 0; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        /* --- VIEW, DOWNLOAD, DELETE BUTTONS STYLES --- */
+        .download-btn { 
+            padding: 6px 14px; 
+            font-size: 14px; 
+            width: auto; 
+            margin: 0; 
+            color: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.1s ease;
+        }
+        /* View/Download/Delete individual active click states */
+        .download-btn:active {
+            background: #ffffff !important;
+            transform: scale(0.95);
+        }
+
         .upload-zone { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
-        .back-btn { background: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
+        .back-btn { background: #6b7280; border-color: #6b7280; width: auto; padding: 8px 15px; float: right; margin: 0; font-size: 14px; }
+        .back-btn:active { color: #6b7280 !important; border-color: #6b7280 !important; }
+        
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-group { display: flex; gap: 8px; align-items: center; }
 
@@ -49,7 +95,7 @@
             <label>Password:</label>
             <input type="password" id="passInput" placeholder="Apna password dalein">
         </div>
-        <button onclick="handleLogin()">Login to Cloud</button>
+        <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
     </div>
 
     <div id="cloudInterface">
@@ -149,14 +195,19 @@ function switchAccount() {
 }
 
 function loadFiles() {
-    // FIXED: If multiple files are uploading right now, do NOT let background fetch override the list
     if (Object.keys(activeUploadRequests).length > 0) {
         return; 
     }
 
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
         const fileList = document.getElementById('listFiles');
-        fileList.innerHTML = '';
+        
+        const activeProgressRows = [];
+        document.querySelectorAll('.uploading-temp-item').forEach(item => {
+            activeProgressRows.push(item.outerHTML);
+        });
+
+        fileList.innerHTML = activeProgressRows.join('');
 
         if (err) {
             alert("Storj connect karne me error aaya!");
@@ -164,7 +215,8 @@ function loadFiles() {
             return;
         }
         
-        if(data.Contents.length === 0) {
+        const totalUploadingCount = Object.keys(activeUploadRequests).length;
+        if(data.Contents.length === 0 && totalUploadingCount === 0) {
             fileList.innerHTML = '<li>Locker khali hai. Nayi file upload karein!</li>';
             return;
         }
@@ -225,10 +277,9 @@ function cancelUpload(uploadId) {
     }
 }
 
-// FIXED: Clean list-override check during delete actions
 function deleteFile(fileKey) {
     if (Object.keys(activeUploadRequests).length > 0) {
-        alert("Kripya pehle chal rahe uploads ko poora hone dein!");
+        alert("Kripya pehle chal rahe uploads ko poora hone edin!");
         return;
     }
     if(confirm("Kya aap sach me '" + fileKey + "' ko delete karna chahte hain?")) {
@@ -239,7 +290,6 @@ function deleteFile(fileKey) {
     }
 }
 
-// UPGRADED STABLE PARALLEL UPLOAD ENGINE
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
@@ -264,11 +314,10 @@ function uploadFiles() {
                     <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
                     <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
                 </div>
-                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
+                <button class="download-btn" style="background: #ef4444; padding: 4px 10px; font-size: 12px; border-color: #ef4444;" onclick="cancelUpload('${uploadId}')">Cancel ❌</button>
             </div>
         `;
         
-        // Always insert at the top of the lineup
         fileList.insertBefore(tempLi, fileList.firstChild);
 
         const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: file.name, Body: file }, function(err, data) {
@@ -283,7 +332,6 @@ function uploadFiles() {
                 }
             }
             
-            // Trigger UI list refresh ONLY when all parallel files are completely finished
             if (Object.keys(activeUploadRequests).length === 0) {
                 loadFiles();
             }
