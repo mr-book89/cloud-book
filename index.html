@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Book</title>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
@@ -65,6 +64,10 @@
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 
+        .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
+        .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
+        .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
+
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; }
         .modal-content { max-width: 90%; max-height: 70%; border-radius: 8px; box-shadow: 0 5px 15px rgba(255,255,255,0.2); display: none; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; }
@@ -77,7 +80,7 @@
     <h1 id="mainDashboardTitle">☁️ Cloud Dashboard</h1>
     
     <div id="loginSection" style="text-align: center; padding: 20px 0;">
-        <button id="loginBtn" onclick="handleLogin()" style="max-width: 400px; font-size: 18px; padding: 15px 30px;">Enter to Cloud Book ➔</button>
+        <button id="loginBtn" onclick="handleLogin()" style="max-width: 400px; font-size: 18px; padding: 15px 30px; letter-spacing: 0.5px;">Enter to Cloud Book ➔</button>
     </div>
 
     <div id="cloudInterface">
@@ -160,15 +163,53 @@
 </div>
 
 <script>
-const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
-const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
+// ALL 8 REAL STORJ KEYS LOADED IN STATIC CORE ARCHITECTURE
+const allUserKeys = {
+    "acc1": { 
+        "bucket": "ashok-cloud", 
+        "accessKey": "jusr5ddlqvk5xyns26wyif2w5jrq", 
+        "secretKey": "j22vpkj6csza2e52bw26ky473mpi5t4pdqfbaitpoydlpwqyugxja" 
+    },
+    "acc2": { 
+        "bucket": "asu-cloud", 
+        "accessKey": "jvxbcebu4snok6he7dmok3pyjyrq", 
+        "secretKey": "jyavk6iw4hrz6645k4vhnalvdnpvppfobalokxv4ugo6phu5q2lnw" 
+    },
+    "acc3": { 
+        "bucket": "chan-cloud", 
+        "accessKey": "jwwgtvo4qz5vxoddymz4cmph5msq", 
+        "secretKey": "jyeptd3nxh2i75vrhiv5bnmc7ggengbzx56utgopo63i3sfoa2tfc" 
+    },
+    "acc4": { 
+        "bucket": "ashu-cloud", 
+        "accessKey": "jxux4ytzhlrhi6u6goea4m3njfva", 
+        "secretKey": "j2tanchiz6qnjxfl7dddy7kirbo6cz3hesd3ztpmn6nl6tpzqbois" 
+    },
+    "acc5": { 
+        "bucket": "vij-cloud", 
+        "accessKey": "jxwrintkgmegs4q6g2zqlf25jw5q", 
+        "secretKey": "jzpmif27bka3h5ngar44szv43perzinv24d4hl3cbxlewycllic7a" 
+    },
+    "acc6": { 
+        "bucket": "mnt-cloud", 
+        "accessKey": "jvj43yktm5bav3xnuslk65zdlnbq", 
+        "secretKey": "jz7p6h7stybvfdyydvwbjnwgy7jvfakyvfel4h7cuanqi3xud63vo" 
+    },
+    "acc7": { 
+        "bucket": "dhn-cloud", 
+        "accessKey": "jx2cifps6y2oeccvgx7ycbbtesgq", 
+        "secretKey": "jzmvsjdutauehwrwnilbdx7qc2njyippdlcixn6i6iibfjq5hny3e" 
+    },
+    "acc8": { 
+        "bucket": "tv-cloud", 
+        "accessKey": "jvebyagnojqk4txeerui27ts6dvq", 
+        "secretKey": "jyw7bv2nousckchrkbm35c3vg3b624nvbryl4spiy4jwwbpci65mq" 
+    }
+};
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
-let allUserKeys = {}; 
 let activeUploadRequests = {}; 
-
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
 let localFilesCachedMemoryList = []; 
@@ -184,29 +225,11 @@ window.onload = function() {
     forceApplyTextChanges();
 };
 
-// FULLY AUTOMATED HYBRID HANDSHAKE WITHOUT INPUT ERRORS
-async function handleLogin() {
-    const loginButton = document.getElementById('loginBtn');
-    loginButton.innerText = "Opening Locker... ⏳";
-    loginButton.disabled = true;
-
-    // Direct dynamic dump from Row ID 1 (Jahan aapki saari asli 8 keys live hain)
-    const { data, error } = await supabaseClient
-        .from('cloud_users')
-        .select('*');
-
-    if (error || !data || data.length === 0) {
-        alert("Supabase response fail! Refresh karke firse Enter dabayein.");
-        loginButton.innerText = "Enter to Cloud Book ➔";
-        loginButton.disabled = false;
-        console.error(error);
-    } else {
-        // Automatically injects your 8 real accounts from the database
-        allUserKeys = data[0].storj_keys;
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('cloudInterface').style.display = 'block';
-        forceApplyTextChanges();
-    }
+// ZERO DEPENDENCY DIRECT ENTRY HANDLER
+function handleLogin() {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('cloudInterface').style.display = 'block';
+    forceApplyTextChanges();
 }
 
 function switchAccount() {
@@ -217,10 +240,6 @@ function switchAccount() {
     }
 
     const accDetails = allUserKeys[selectedAcc];
-    if (!accDetails) {
-        alert("Error: Is account ki chabi database me nahi mili!");
-        return;
-    }
     currentBucket = accDetails.bucket;
 
     AWS.config.update({
@@ -305,7 +324,7 @@ function switchFilterTab(tabType) {
 function loadFiles() {
     if (Object.keys(activeUploadRequests).length > 0) return;
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        if (err) { alert("Storj connect karne me error aaya! Chabi badal gayi hai shayad."); return; }
+        if (err) { alert("Storj connect karne me error aaya! Chabi block ho gayi hai."); return; }
         localFilesCachedMemoryList = data.Contents || [];
         renderFilesFromCache();
     });
@@ -681,9 +700,6 @@ function logout() {
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
     document.getElementById('accountSelect').value = '';
-    const loginButton = document.getElementById('loginBtn');
-    loginButton.innerText = "Enter to Cloud Book ➔";
-    loginButton.disabled = false;
 }
 </script>
 </body>
