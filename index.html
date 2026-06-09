@@ -65,9 +65,6 @@
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 
-        /* PASSWORD PANEL STYLES */
-        .password-engine-box { background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 8px; margin-top: 25px; display: none; }
-
         .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
@@ -117,20 +114,6 @@
     <div id="fileManager">
         <div class="account-bar">
             <strong id="activeAccountTitle">Connected: None</strong>
-            <button onclick="togglePasswordPanel()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#d97706 !important; border-color:#d97706 !important;">Key Settings</button>
-        </div>
-
-        <div class="password-engine-box" id="passwordSettingsPanel">
-            <h3 style="margin-top:0; color:#b45309; font-size:16px;">🔑 Credentials Manager</h3>
-            <div class="form-group">
-                <label style="font-size:13px; color:#b45309;">Naya Username Likhein:</label>
-                <input type="text" id="newUsernameDBInput" placeholder="carvam">
-            </div>
-            <div class="form-group">
-                <label style="font-size:13px; color:#b45309;">Naya Password Likhein:</label>
-                <input type="password" id="newPasswordDBInput" placeholder="Naya password dalein">
-            </div>
-            <button onclick="updateDatabaseCredentials()" style="background:#b45309 !important; border-color:#b45309 !important; padding:8px; font-size:14px;">Update Login Info</button>
         </div>
 
         <div class="folder-engine-box">
@@ -189,7 +172,6 @@
 </div>
 
 <script>
-// ORIGINAL SUPABASE LINK CONFIGURATION RESTORED
 const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
 
@@ -198,7 +180,6 @@ let s3;
 let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
-let currentLoggedUserID = null;
 
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
@@ -206,72 +187,42 @@ let localFilesCachedMemoryList = [];
 let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
-    document.getElementById('mainDashboardTitle').innerHTML = "☁️ Cloud Dashboard";
-    document.getElementById('welcomeText').innerHTML = "Welcome !";
-    document.getElementById('selectBookLabel').innerHTML = "Select Your Book";
+    const mainTitle = document.getElementById('mainDashboardTitle');
+    const welcome = document.getElementById('welcomeText');
+    const labelBook = document.getElementById('selectBookLabel');
+    
+    if(mainTitle) mainTitle.innerHTML = "☁️ Cloud Dashboard";
+    if(welcome) welcome.innerHTML = "Welcome !";
+    if(labelBook) labelBook.innerHTML = "Select Your Book";
 }
 
 window.onload = function() {
     forceApplyTextChanges();
 };
 
-// MULTI-ROW FALLBACK HYBRID LOGIN SYSTEM FOR SUPABASE PAUSE BYPASS
+// ADVANCED DYNAMIC VERIFICATION PIPELINE WITHOUT PACKET LOSS
 async function handleLogin() {
     const user = document.getElementById('userInput').value.trim();
     const pass = document.getElementById('passInput').value.trim();
 
     if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
 
-    // Direct select array query trigger to avoid string formatting issues
+    // Direct explicit verification request endpoint
     const { data, error } = await supabaseClient
         .from('cloud_users')
-        .select('*');
+        .select('*')
+        .eq('username', user)
+        .eq('password', pass);
 
     if (error || !data || data.length === 0) {
+        alert("Username ya Password galat hai!");
         console.error(error);
-        alert("Database Connectivity Drop! Double check if your Supabase project is active.");
-        return;
-    }
-
-    let matchedUserRecord = data.find(row => row.username.trim() === user && row.password.trim() === pass);
-
-    if (matchedUserRecord) {
-        currentLoggedUserID = matchedUserRecord.id; 
-        allUserKeys = matchedUserRecord.storj_keys;
-        
-        document.getElementById('newUsernameDBInput').value = matchedUserRecord.username;
-        document.getElementById('newPasswordDBInput').value = matchedUserRecord.password;
-
+    } else {
+        // Grab the precise record object dynamically to restore all 8 keys mapped inside JSON
+        allUserKeys = data[0].storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
         forceApplyTextChanges();
-    } else {
-        alert("Username ya Password galat hai!");
-    }
-}
-
-function togglePasswordPanel() {
-    const panel = document.getElementById('passwordSettingsPanel');
-    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-}
-
-async function updateDatabaseCredentials() {
-    const targetUser = document.getElementById('newUsernameDBInput').value.trim();
-    const targetPass = document.getElementById('newPasswordDBInput').value.trim();
-
-    if(!targetUser || !targetPass) { alert("Fields khali nahi chhod sakte!"); return; }
-
-    const { error } = await supabaseClient
-        .from('cloud_users')
-        .update({ username: targetUser, password: targetPass })
-        .eq('id', currentLoggedUserID);
-
-    if(error) {
-        alert("Update failed!");
-        console.error(error);
-    } else {
-        alert("💥 Success: Username aur Password automatic Supabase me update ho gaya hai!");
-        document.getElementById('passwordSettingsPanel').style.display = 'none';
     }
 }
 
@@ -283,6 +234,10 @@ function switchAccount() {
     }
 
     const accDetails = allUserKeys[selectedAcc];
+    if (!accDetails) {
+        alert("Error: Is Book account ki keys database configuration me nahi mili!");
+        return;
+    }
     currentBucket = accDetails.bucket;
 
     AWS.config.update({
@@ -294,6 +249,7 @@ function switchAccount() {
     });
 
     s3 = new AWS.S3();
+    
     const selectedText = document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
     document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
     
@@ -405,7 +361,6 @@ function runRenameEngine(oldKey, isFolder = false) {
     }
 }
 
-// RESTORED SHARE LINK GENERATION WITH 24 HOURS EXPIRATION
 function runShareEngine(fileKey) {
     closeAllOpenContextMenus();
     const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 });
