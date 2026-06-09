@@ -197,7 +197,7 @@ let s3;
 let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
-let currentLoggedUserID = null; // Track database ID for quick modifications
+let currentLoggedUserID = null;
 
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
@@ -218,32 +218,43 @@ window.onload = function() {
     forceApplyTextChanges();
 };
 
-// BYPASS EMBEDDED STRING MATCHING ENGINE (FLEXIBLE CLIENT SIDE VALIDATION)
+// DIRECT FETCH SYSTEM WITH NO NETWORK FALLBACK
 async function handleLogin() {
     const user = document.getElementById('userInput').value.trim();
     const pass = document.getElementById('passInput').value.trim();
 
     if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
 
-    // Fetch full dataset to bypass string verification bugs over RLS filter queries
+    // Bulletproof: Direct select call with dynamic filter bypass mapping
     const { data, error } = await supabaseClient
         .from('cloud_users')
         .select('*');
 
     if (error || !data || data.length === 0) {
-        alert("Database connection drop error!");
+        // Fallback matching logic for network variations
         console.error(error);
+        alert("Connection Drop! Checking direct record handshake...");
+        
+        // Final force attempt matching directly via generic headers
+        const { data: forceData } = await supabaseClient.from('cloud_users').select();
+        if(forceData && forceData.length > 0) {
+            processRecordHandshake(forceData, user, pass);
+        } else {
+            alert("Database Error! Refresh and try again.");
+        }
         return;
     }
 
-    // Match credentials locally on runtime context safely
-    let matchedUserRecord = data.find(row => row.username.trim() === user && row.password.trim() === pass);
+    processRecordHandshake(data, user, pass);
+}
+
+function processRecordHandshake(recordsList, user, pass) {
+    let matchedUserRecord = recordsList.find(row => row.username.trim() === user && row.password.trim() === pass);
 
     if (matchedUserRecord) {
         currentLoggedUserID = matchedUserRecord.id; 
         allUserKeys = matchedUserRecord.storj_keys;
         
-        // Feed password manager defaults
         document.getElementById('newUsernameDBInput').value = matchedUserRecord.username;
         document.getElementById('newPasswordDBInput').value = matchedUserRecord.password;
 
@@ -260,7 +271,6 @@ function togglePasswordPanel() {
     panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
 }
 
-// UPDATE CREDENTIALS DIRECTLY FROM INTERNAL INSIDE PLATFORM DASHBOARD
 async function updateDatabaseCredentials() {
     const targetUser = document.getElementById('newUsernameDBInput').value.trim();
     const targetPass = document.getElementById('newPasswordDBInput').value.trim();
@@ -273,14 +283,11 @@ async function updateDatabaseCredentials() {
         .eq('id', currentLoggedUserID);
 
     if(error) {
-        alert("Update failed! Configuration issue.");
+        alert("Update failed!");
         console.error(error);
     } else {
-        alert("💥 Success: Aapka Login Username aur Password automatic Supabase me update ho gaya hai!");
+        alert("💥 Success: Username aur Password automatic Supabase me update ho gaya hai!");
         document.getElementById('passwordSettingsPanel').style.display = 'none';
-        
-        // Sync local memory map row data values list
-        s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) { loadFiles(); });
     }
 }
 
