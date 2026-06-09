@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Book</title>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
@@ -65,6 +66,9 @@
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 
+        /* PASSWORD PANEL STYLES */
+        .password-engine-box { background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 8px; margin-top: 25px; display: none; }
+
         .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
@@ -83,12 +87,10 @@
     <div id="loginSection">
         <div class="form-group">
             <label>Username:</label>
-            <!-- UPDATED PLACEHOLDER TO PLAIN USERNAME -->
             <input type="text" id="userInput" placeholder="Username">
         </div>
         <div class="form-group">
             <label>Password:</label>
-            <!-- UPDATED PLACEHOLDER TO PLAIN PASSWORD -->
             <input type="password" id="passInput" placeholder="Password">
         </div>
         <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
@@ -102,13 +104,6 @@
             <select id="accountSelect" onchange="switchAccount()">
                 <option value="">Select Your Book</option>
                 <option value="acc1">Book 1</option>
-                <option value="acc2">Book 2</option>
-                <option value="acc3">Book 3</option>
-                <option value="acc4">Book 4</option>
-                <option value="acc5">Book 5</option>
-                <option value="acc6">Book 6</option>
-                <option value="acc7">Book 7</option>
-                <option value="acc8">Book 8</option>
             </select>
         </div>
     </div>
@@ -116,6 +111,20 @@
     <div id="fileManager">
         <div class="account-bar">
             <strong id="activeAccountTitle">Connected: None</strong>
+            <button onclick="togglePasswordPanel()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#d97706 !important; border-color:#d97706 !important;">Key Settings</button>
+        </div>
+
+        <div class="password-engine-box" id="passwordSettingsPanel">
+            <h3 style="margin-top:0; color:#b45309; font-size:16px;">🔑 Credentials Manager</h3>
+            <div class="form-group">
+                <label style="font-size:13px; color:#b45309;">Naya Username Likhein:</label>
+                <input type="text" id="newUsernameDBInput" placeholder="carvam">
+            </div>
+            <div class="form-group">
+                <label style="font-size:13px; color:#b45309;">Naya Password Likhein:</label>
+                <input type="password" id="newPasswordDBInput" placeholder="Naya password dalein">
+            </div>
+            <button onclick="updateDatabaseCredentials()" style="background:#b45309 !important; border-color:#b45309 !important; padding:8px; font-size:14px;">Update Login Info</button>
         </div>
 
         <div class="folder-engine-box">
@@ -174,64 +183,99 @@
 </div>
 
 <script>
-const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
-const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
+// ⚠️ ATTENTION: YAHAN APNA FIREBASE DATABASE URL DALO JO COPIED HAI!
+const FIREBASE_DB_URL = "https://JAISA_PEHLE_STEP_ME_COPY_KIYA_THA.firebaseio.com/";
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
+const database = firebase.database();
+
 let s3;
 let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
-
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
 let localFilesCachedMemoryList = []; 
 let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
-    const mainTitle = document.getElementById('mainDashboardTitle');
-    const welcome = document.getElementById('welcomeText');
-    const labelBook = document.getElementById('selectBookLabel');
-    
-    if(mainTitle) mainTitle.innerHTML = "☁️ Cloud Dashboard";
-    if(welcome) welcome.innerHTML = "Welcome !";
-    if(labelBook) labelBook.innerHTML = "Select Your Book";
+    document.getElementById('mainDashboardTitle').innerHTML = "☁️ Cloud Dashboard";
+    document.getElementById('welcomeText').innerHTML = "Welcome !";
+    document.getElementById('selectBookLabel').innerHTML = "Select Your Book";
 }
 
 window.onload = function() {
     forceApplyTextChanges();
+    // Pre-seed setup structural verification schema if target database node layout empty
+    database.ref("cloud_users/settings").once("value", function(snapshot) {
+        if(!snapshot.exists()) {
+            database.ref("cloud_users/settings").set({
+                username: "carvam",
+                password: "carvam8960",
+                storj_keys: {
+                    "acc1": {
+                        "bucket": "ashok-cloud",
+                        "accessKey": "0057ec09e73b22b0000000001",
+                        "secretKey": "00539ba4fa5f5ca98380dbca08aeb41"
+                    }
+                }
+            });
+        }
+    });
 };
 
-async function handleLogin() {
-    const user = document.getElementById('userInput').value;
-    const pass = document.getElementById('passInput').value;
+// FIREBASE FAST HANDSHAKE LOGIN ENGINE
+function handleLogin() {
+    const user = document.getElementById('userInput').value.trim();
+    const pass = document.getElementById('passInput').value.trim();
 
     if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
 
-    const { data, error } = await supabaseClient
-        .from('cloud_users')
-        .select('*')
-        .eq('username', user)
-        .eq('password', pass)
-        .single();
+    database.ref("cloud_users/settings").once("value", function(snapshot) {
+        const data = snapshot.val();
+        if(data && data.username === user && data.password === pass) {
+            allUserKeys = data.storj_keys;
+            document.getElementById('newUsernameDBInput').value = data.username;
+            document.getElementById('newPasswordDBInput').value = data.password;
 
-    if (error || !data) {
-        alert("Username ya Password galat hai!");
-        console.error(error);
-    } else {
-        allUserKeys = data.storj_keys;
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('cloudInterface').style.display = 'block';
-        forceApplyTextChanges();
-    }
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('cloudInterface').style.display = 'block';
+            forceApplyTextChanges();
+        } else {
+            alert("Username ya Password galat hai!");
+        }
+    }, function(error) {
+        alert("Firebase Config Error! Check database security rules.");
+    });
+}
+
+function togglePasswordPanel() {
+    const panel = document.getElementById('passwordSettingsPanel');
+    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+}
+
+// UPDATE CREDENTIALS LIVE ON FIREBASE CLOUD REALTIME CONTEXT
+function updateDatabaseCredentials() {
+    const targetUser = document.getElementById('newUsernameDBInput').value.trim();
+    const targetPass = document.getElementById('newPasswordDBInput').value.trim();
+
+    if(!targetUser || !targetPass) { alert("Fields khali nahi chhod sakte!"); return; }
+
+    database.ref("cloud_users/settings").update({
+        username: targetUser,
+        password: targetPass
+    }, function(error) {
+        if(error) { alert("Update failed!"); }
+        else {
+            alert("🔥 Success: Credentials manager synced directly over Firebase Cloud system!");
+            document.getElementById('passwordSettingsPanel').style.display = 'none';
+        }
+    });
 }
 
 function switchAccount() {
     const selectedAcc = document.getElementById('accountSelect').value;
-    if(!selectedAcc) {
-        document.getElementById('fileManager').style.display = 'none';
-        return;
-    }
+    if(!selectedAcc) { document.getElementById('fileManager').style.display = 'none'; return; }
 
     const accDetails = allUserKeys[selectedAcc];
     currentBucket = accDetails.bucket;
@@ -245,7 +289,6 @@ function switchAccount() {
     });
 
     s3 = new AWS.S3();
-    
     const selectedText = document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
     document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
     
@@ -262,50 +305,25 @@ function toggleFolderInputStyle() {
 
 function updateFolderDropdownUI() {
     const dropdown = document.getElementById('existingFolderSelect');
-    if(!dropdown) return;
-    dropdown.innerHTML = "";
-    
-    if(uniqueDetectedFoldersList.size === 0) {
-        dropdown.innerHTML = "<option value=''>-- Koi Folder Nahi Mila --</option>";
-        return;
-    }
-    
+    if(!dropdown) return; dropdown.innerHTML = "";
+    if(uniqueDetectedFoldersList.size === 0) { dropdown.innerHTML = "<option value=''>-- Koi Folder Nahi Mila --</option>"; return; }
     uniqueDetectedFoldersList.forEach(folder => {
-        const opt = document.createElement('option');
-        opt.value = folder;
-        opt.innerText = folder;
-        dropdown.appendChild(opt);
+        const opt = document.createElement('option'); opt.value = folder; opt.innerText = folder; dropdown.appendChild(opt);
     });
 }
 
 function navigateToFolder(path) {
     currentDirectoryPath = path;
     const pathBar = document.getElementById('folderPathBar');
-    if(path === "") {
-        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span>`;
-    } else {
-        const cleanDisplayFolder = path.replace(/\/$/, "");
-        pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span> / <strong style="color:#1e293b;">${cleanDisplayFolder}</strong>`;
-    }
+    if(path === "") { pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span>`; } 
+    else { pathBar.innerHTML = `Location: <span class="folder-nav-link" onclick="navigateToFolder('')">Home</span> / <strong style="color:#1e293b;">${path.replace(/\/$/, "")}</strong>`; }
     document.getElementById('cloudSearchInput').value = "";
     renderFilesFromCache();
 }
 
-function isImageFile(fileName) {
-    const ext = fileName.split('.').pop().toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
-}
-
-// Function checking for common presentation/movie codecs
-function isVideoFile(fileName) {
-    const ext = fileName.split('.').pop().toLowerCase();
-    return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext);
-}
-
-function isAudioFile(fileName) {
-    const ext = fileName.split('.').pop().toLowerCase();
-    return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext);
-}
+function isImageFile(fileName) { const ext = fileName.split('.').pop().toLowerCase(); return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext); }
+function isVideoFile(fileName) { const ext = fileName.split('.').pop().toLowerCase(); return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext); }
+function isAudioFile(fileName) { const ext = fileName.split('.').pop().toLowerCase(); return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext); }
 
 function switchFilterTab(tabType) {
     currentSelectedActiveTabType = tabType;
@@ -325,453 +343,118 @@ function loadFiles() {
     });
 }
 
-function toggleContextMenu(event, menuId) {
-    event.stopPropagation();
-    const targetMenu = document.getElementById(menuId);
-    const wasOpen = targetMenu.style.display === "block";
-    closeAllOpenContextMenus();
-    if (!wasOpen) targetMenu.style.display = "block";
-}
-
-function closeAllOpenContextMenus() {
-    document.querySelectorAll('.context-menu-dropdown').forEach(menu => {
-        menu.style.display = "none";
-    });
-}
+function toggleContextMenu(event, menuId) { event.stopPropagation(); const targetMenu = document.getElementById(menuId); const wasOpen = targetMenu.style.display === "block"; closeAllOpenContextMenus(); if (!wasOpen) targetMenu.style.display = "block"; }
+function closeAllOpenContextMenus() { document.querySelectorAll('.context-menu-dropdown').forEach(menu => { menu.style.display = "none"; }); }
 
 function runRenameEngine(oldKey, isFolder = false) {
     closeAllOpenContextMenus();
     const cleanOldName = oldKey.split('/').filter(Boolean).pop();
     const newName = prompt("Rename Karein:", cleanOldName);
-    
     if(!newName || newName.trim() === "" || newName === cleanOldName) return;
-
-    let newKey = "";
-    if(isFolder) {
-        newKey = newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/";
-        renameFolderObjectsRecursive(oldKey, newKey);
-    } else {
-        const pathParts = oldKey.split('/');
-        pathParts[pathParts.length - 1] = newName.trim();
-        newKey = pathParts.join('/');
-        executeS3CopyMoveOperation(oldKey, newKey, true);
-    }
+    let newKey = isFolder ? newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/" : oldKey.split('/').slice(0,-1).concat(newName.trim()).join('/');
+    executeS3CopyMoveOperation(oldKey, newKey, true);
 }
 
-function runShareEngine(fileKey) {
-    closeAllOpenContextMenus();
-    const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 });
-    navigator.clipboard.writeText(url).then(() => {
-        alert("Success: Signed download link clipboard par copy ho gaya hai! (Valid for 24 hours)");
-    }).catch(err => {
-        alert("Link copy karne me dikkat aayi: " + url);
-    });
-}
-
-function runFileInfoEngine(key, sizeBytes, modifiedDate) {
-    closeAllOpenContextMenus();
-    const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
-    const extension = key.split('.').pop().toUpperCase();
-    alert(`📄 [FILE DETAILS INFO]\n\n• Key Path: ${key}\n• File Size: ${sizeMB} MB (${sizeBytes} bytes)\n• Type/Ext: ${extension}\n• Last Modified: ${modifiedDate || 'N/A'}`);
-}
-
-function runFolderInfoEngine(folderName) {
-    closeAllOpenContextMenus();
-    let count = 0; let size = 0;
-    localFilesCachedMemoryList.forEach(item => {
-        if(item.Key.startsWith(folderName + "/")) { count++; size += item.Size; }
-    });
-    alert(`📁 [FOLDER DETAILS INFO]\n\n• Name: ${folderName}\n• Nested Items: ${count} files\n• Total Directory Size: ${(size/1024/1024).toFixed(2)} MB`);
-}
+function runShareEngine(fileKey) { closeAllOpenContextMenus(); const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 }); navigator.clipboard.writeText(url).then(() => { alert("Link copied!"); }); }
+function runFileInfoEngine(key, sizeBytes) { closeAllOpenContextMenus(); alert(`📄 Size: ${(sizeBytes/1024/1024).toFixed(2)} MB\nPath: ${key}`); }
+function runFolderInfoEngine(folderName) { closeAllOpenContextMenus(); let count = 0; let size = 0; localFilesCachedMemoryList.forEach(item => { if(item.Key.startsWith(folderName + "/")) { count++; size += item.Size; } }); alert(`📁 Folder: ${folderName}\nItems: ${count}`); }
 
 function runMoveCopyEngine(oldKey, operationMode) {
-    closeAllOpenContextMenus();
-    let destinationFolder = prompt("Target destination folder ka naam likhein (Main branch ke liye 'root' likhein):");
-    if(destinationFolder === null) return;
-    
-    destinationFolder = destinationFolder.trim().replace(/[\/\\?%*:|"<>. ]/g, "_");
-    const filename = oldKey.split('/').pop();
-    let newKey = (destinationFolder.toLowerCase() === "root" || destinationFolder === "") ? filename : destinationFolder + "/" + filename;
-    
-    if(oldKey === newKey) { alert("Error: Origin aur Target paths paths bilkul same hain!"); return; }
+    closeAllOpenContextMenus(); let destinationFolder = prompt("Target folder name:"); if(destinationFolder === null) return;
+    destinationFolder = destinationFolder.trim().replace(/[\/\\?%*:|"<>. ]/g, "_"); const filename = oldKey.split('/').pop();
+    let newKey = (destinationFolder === "root" || destinationFolder === "") ? filename : destinationFolder + "/" + filename;
     executeS3CopyMoveOperation(oldKey, newKey, operationMode === 'move');
 }
 
 function executeS3CopyMoveOperation(sourceKey, targetKey, shouldDeleteOriginal = false) {
-    const copyParams = {
-        Bucket: currentBucket,
-        CopySource: encodeURIComponent(currentBucket + '/' + sourceKey),
-        Key: targetKey
-    };
-
-    s3.copyObject(copyParams, function(copyErr, copyData) {
-        if (copyErr) { alert("Operation failed!"); return; }
-        if (shouldDeleteOriginal) {
-            s3.deleteObject({ Bucket: currentBucket, Key: sourceKey }, function(delErr) {
-                syncAndRefreshLocalState();
-            });
-        } else {
-            syncAndRefreshLocalState();
-        }
-    });
-}
-
-function renameFolderObjectsRecursive(oldFolderPrefix, newFolderPrefix) {
-    s3.listObjectsV2({ Bucket: currentBucket, Prefix: oldFolderPrefix }, function(err, data) {
-        if(err || !data.Contents) return;
-        let completed = 0;
-        const total = data.Contents.length;
-        if(total === 0) { syncAndRefreshLocalState(); return; }
-
-        data.Contents.forEach(item => {
-            const currentOldKey = item.Key;
-            const relativePart = currentOldKey.substring(oldFolderPrefix.length);
-            const targetNewKey = newFolderPrefix + relativePart;
-
-            s3.copyObject({
-                Bucket: currentBucket,
-                CopySource: encodeURIComponent(currentBucket + '/' + currentOldKey),
-                Key: targetNewKey
-            }, function() {
-                s3.deleteObject({ Bucket: currentBucket, Key: currentOldKey }, function() {
-                    completed++;
-                    if(completed === total) syncAndRefreshLocalState();
-                });
-            });
-        });
+    s3.copyObject({ Bucket: currentBucket, CopySource: encodeURIComponent(currentBucket + '/' + sourceKey), Key: targetKey }, function(err) {
+        if (err) { alert("Failed!"); return; }
+        if (shouldDeleteOriginal) { s3.deleteObject({ Bucket: currentBucket, Key: sourceKey }, function() { syncAndRefreshLocalState(); }); } 
+        else { syncAndRefreshLocalState(); }
     });
 }
 
 function runFolderDeleteEngine(folderPrefix) {
     closeAllOpenContextMenus();
-    if(confirm(`🚨 WARNING: Kya aap sach me folder '${folderPrefix}' ko hamesha ke liye udana chahte hain?`)) {
+    if(confirm("Delete folder?")) {
         s3.listObjectsV2({ Bucket: currentBucket, Prefix: folderPrefix + "/" }, function(err, data) {
-            if(err || !data.Contents || data.Contents.length === 0) {
-                loadFiles(); return;
-            }
-            let deletedCount = 0;
-            const totalToKill = data.Contents.length;
-            data.Contents.forEach(obj => {
-                s3.deleteObject({ Bucket: currentBucket, Key: obj.Key }, function() {
-                    deletedCount++;
-                    if(deletedCount === totalToKill) syncAndRefreshLocalState();
-                });
-            });
+            if(err || !data.Contents || data.Contents.length === 0) { loadFiles(); return; }
+            let deletedCount = 0; const total = data.Contents.length;
+            data.Contents.forEach(obj => { s3.deleteObject({ Bucket: currentBucket, Key: obj.Key }, function() { deletedCount++; if(deletedCount === total) syncAndRefreshLocalState(); }); });
         });
     }
 }
 
-function syncAndRefreshLocalState() {
-    s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
-    });
-}
+function syncAndRefreshLocalState() { s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) { if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); } }); }
 
 function renderFilesFromCache() {
-    const fileList = document.getElementById('listFiles');
-    const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
-    
-    const activeProgressRows = [];
-    document.querySelectorAll('.uploading-temp-item').forEach(item => {
-        activeProgressRows.push(item.outerHTML);
-    });
-    fileList.innerHTML = activeProgressRows.join('');
-
-    uniqueDetectedFoldersList.clear();
-    const itemsToRender = [];
-    const trackingSubFoldersInCurrentDir = new Set();
-    
-    let renderedFilesTotalCount = 0;
-    let renderedFilesTotalByteSize = 0;
+    const fileList = document.getElementById('listFiles'); const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
+    fileList.innerHTML = ''; uniqueDetectedFoldersList.clear(); const itemsToRender = []; const trackingSubFoldersInCurrentDir = new Set();
+    let renderedFilesTotalCount = 0; let renderedFilesTotalByteSize = 0;
 
     localFilesCachedMemoryList.forEach(function(content) {
         const key = content.Key;
         if(key.includes('/')) {
-            const parts = key.split('/');
-            const baseFolderName = parts[0];
-            uniqueDetectedFoldersList.add(baseFolderName);
-            
-            if(currentDirectoryPath === "") {
-                trackingSubFoldersInCurrentDir.add(baseFolderName);
-            } else if(key.startsWith(currentDirectoryPath)) {
-                const relativePath = key.substring(currentDirectoryPath.length);
-                if(relativePath.length > 0) itemsToRender.push({ type: 'file', data: content, displayKey: relativePath });
-            }
-        } else {
-            if(currentDirectoryPath === "") itemsToRender.push({ type: 'file', data: content, displayKey: key });
-        }
+            const parts = key.split('/'); const baseFolderName = parts[0]; uniqueDetectedFoldersList.add(baseFolderName);
+            if(currentDirectoryPath === "") { trackingSubFoldersInCurrentDir.add(baseFolderName); } 
+            else if(key.startsWith(currentDirectoryPath)) { const rel = key.substring(currentDirectoryPath.length); if(rel.length > 0) itemsToRender.push({ data: content, displayKey: rel }); }
+        } else { if(currentDirectoryPath === "") itemsToRender.push({ data: content, displayKey: key }); }
     });
 
-    updateFolderDropdownUI();
-
-    let uniqueIdCounter = 0;
+    updateFolderDropdownUI(); let uniqueIdCounter = 0;
     
     trackingSubFoldersInCurrentDir.forEach(folderName => {
-        if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
-        if(currentSelectedActiveTabType !== 'all') return;
-
-        uniqueIdCounter++;
-        const currentMenuUniqueId = `folder_menu_${uniqueIdCounter}`;
-
-        const li = document.createElement('li');
-        li.className = 'file-item folder-row-style';
-        li.setAttribute('onclick', `navigateToFolder('${folderName}/')`);
-        
-        li.innerHTML = `
-            <div class="file-info-zone">
-                <svg class="folder-svg-icon" viewBox="0 0 24 24">
-                    <path d="M10 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
-                </svg>
-                <div class="file-name-text">
-                    ${folderName} <br>
-                    <span style="font-size:11px; color:#64748b; font-weight:normal;">Folder Directory</span>
-                </div>
-            </div>
-            <div style="position: relative;">
-                <button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button>
-                <div class="context-menu-dropdown" id="${currentMenuUniqueId}">
-                    <div class="context-menu-item" onclick="event.stopPropagation(); navigateToFolder('${folderName}/')">Open Folder</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${folderName}/', true)">Rename</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runFolderInfoEngine('${folderName}')">Folder Info</div>
-                    <div class="context-menu-item delete-action" onclick="event.stopPropagation(); runFolderDeleteEngine('${folderName}')">Delete</div>
-                </div>
-            </div>
-        `;
+        if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return; if(currentSelectedActiveTabType !== 'all') return;
+        uniqueIdCounter++; const currentMenuUniqueId = `folder_menu_${uniqueIdCounter}`;
+        const li = document.createElement('li'); li.className = 'file-item folder-row-style'; li.setAttribute('onclick', `MapsToFolder('${folderName}/')`);
+        li.innerHTML = `<div class="file-info-zone"><svg class="folder-svg-icon" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg><div class="file-name-text">${folderName}<br><span style="font-size:11px; color:#64748b;">Folder</span></div></div><div style="position: relative;"><button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button><div class="context-menu-dropdown" id="${currentMenuUniqueId}"><div class="context-menu-item" onclick="event.stopPropagation(); navigateToFolder('${folderName}/')">Open</div><div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${folderName}/', true)">Rename</div><div class="context-menu-item" onclick="event.stopPropagation(); runFolderInfoEngine('${folderName}')">Info</div><div class="context-menu-item delete-action" onclick="event.stopPropagation(); runFolderDeleteEngine('${folderName}')">Delete</div></div></div>`;
         fileList.appendChild(li);
     });
 
     itemsToRender.forEach(function(item) {
-        uniqueIdCounter++;
-        const content = item.data;
-        const originalKey = content.Key;
-        const displayLabel = item.displayKey;
-        const currentMenuUniqueId = `file_menu_${uniqueIdCounter}`;
-        
-        if(searchQuery !== "" && !displayLabel.toLowerCase().includes(searchQuery)) return;
-        if(currentSelectedActiveTabType === 'photos' && !isImageFile(originalKey)) return;
-        if(currentSelectedActiveTabType === 'videos' && !isVideoFile(originalKey)) return;
-
-        renderedFilesTotalCount++;
-        renderedFilesTotalByteSize += content.Size;
-
-        const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: originalKey, Expires: 3600 });
-        
-        let typeIconLabel = "FILE";
-        if(isImageFile(originalKey)) typeIconLabel = "IMG";
-        if(isVideoFile(originalKey)) typeIconLabel = "VIDEO";
-        if(isAudioFile(originalKey)) typeIconLabel = "AUDIO";
-
-        let iconOrThumbnailHTML = `<div class="file-thumbnail">${typeIconLabel}</div>`;
-        if (isImageFile(originalKey)) {
-            iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
-        }
-
-        const li = document.createElement('li');
-        li.className = 'file-item';
-        li.setAttribute('onclick', `previewFileDirectly('${originalKey}')`);
-        
-        li.innerHTML = `
-            <div class="file-info-zone">
-                ${iconOrThumbnailHTML}
-                <div class="file-name-text">
-                    ${displayLabel} <br>
-                    <span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span>
-                </div>
-            </div>
-            <div style="position: relative;">
-                <button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button>
-                <div class="context-menu-dropdown" id="${currentMenuUniqueId}">
-                    <div class="context-menu-item" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View / Play</div>
-                    <a href="${url}" download="${displayLabel}" style="text-decoration:none;" onclick="event.stopPropagation(); closeAllOpenContextMenus();">
-                        <div class="context-menu-item">Download</div>
-                    </a>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${originalKey}', false)">Rename</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'move')">Move To</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'copy')">Copy To</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runShareEngine('${originalKey}')">Share Link</div>
-                    <div class="context-menu-item" onclick="event.stopPropagation(); runFileInfoEngine('${originalKey}', ${content.Size}, '${content.LastModified}')">File Info</div>
-                    <div class="context-menu-item delete-action" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</div>
-                </div>
-            </div>
-        `;
+        uniqueIdCounter++; const content = item.data; const originalKey = content.Key; const displayLabel = item.displayKey; const currentMenuUniqueId = `file_menu_${uniqueIdCounter}`;
+        if(searchQuery !== "" && !displayLabel.toLowerCase().includes(searchQuery)) return; if(currentSelectedActiveTabType === 'photos' && !isImageFile(originalKey)) return; if(currentSelectedActiveTabType === 'videos' && !isVideoFile(originalKey)) return;
+        renderedFilesTotalCount++; renderedFilesTotalByteSize += content.Size; const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: originalKey, Expires: 3600 });
+        let typeLabel = "FILE"; if(isImageFile(originalKey)) typeLabel = "IMG"; if(isVideoFile(originalKey)) typeLabel = "VIDEO"; if(isAudioFile(originalKey)) typeLabel = "AUDIO";
+        let thumbHTML = isImageFile(originalKey) ? `<img class="file-thumbnail" src="${url}">` : `<div class="file-thumbnail">${typeLabel}</div>`;
+        const li = document.createElement('li'); li.className = 'file-item'; li.setAttribute('onclick', `previewFileDirectly('${originalKey}')`);
+        li.innerHTML = `<div class="file-info-zone">${thumbHTML}<div class="file-name-text">${displayLabel}<br><span style="font-size: 11px; color: #64748b;">(${(content.Size/1024/1024).toFixed(2)} MB)</span></div></div><div style="position: relative;"><button class="three-dot-btn" onclick="toggleContextMenu(event, '${currentMenuUniqueId}')">⋮</button><div class="context-menu-dropdown" id="${currentMenuUniqueId}"><div class="context-menu-item" onclick="event.stopPropagation(); previewFileDirectly('${originalKey}')">View</div><a href="${url}" download="${displayLabel}" style="text-decoration:none;"><div class="context-menu-item">Download</div></a><div class="context-menu-item" onclick="event.stopPropagation(); runRenameEngine('${originalKey}', false)">Rename</div><div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'move')">Move</div><div class="context-menu-item" onclick="event.stopPropagation(); runMoveCopyEngine('${originalKey}', 'copy')">Copy</div><div class="context-menu-item" onclick="event.stopPropagation(); runShareEngine('${originalKey}')">Share</div><div class="context-menu-item delete-action" onclick="event.stopPropagation(); deleteFile('${originalKey}')">Delete</div></div></div>`;
         fileList.appendChild(li);
     });
-
-    const convertedMegaBytes = (renderedFilesTotalByteSize / 1024 / 1024).toFixed(2);
-    document.getElementById('storageSummaryTracker').innerText = `Total Files: ${renderedFilesTotalCount} | Size: ${convertedMegaBytes} MB`;
-
-    if (fileList.innerHTML === "") {
-        fileList.innerHTML = '<li>Locker khali hai ya matches nahi mile.</li>';
-    }
+    document.getElementById('storageSummaryTracker').innerText = `Total Files: ${renderedFilesTotalCount} | Size: ${(renderedFilesTotalByteSize/1024/1024).toFixed(2)} MB`;
+    if (fileList.innerHTML === "") fileList.innerHTML = '<li>Locker khali hai.</li>';
 }
 
 function applySearchAndFilters() { renderFilesFromCache(); }
 
 function previewFileDirectly(fileKey) {
-    closeAllOpenContextMenus();
-    const modal = document.getElementById('previewModal');
-    const modalImg = document.getElementById('previewImg');
-    const modalVid = document.getElementById('previewVideo');
-    const modalAud = document.getElementById('previewAudio');
-    const modalTitle = document.getElementById('modalMediaTitle');
-    
-    modalImg.src = ""; modalImg.style.display = "none";
-    modalVid.src = ""; modalVid.style.display = "none";
-    modalAud.src = ""; modalAud.style.display = "none";
-    
-    const shortTitleClean = fileKey.split('/').pop();
-    modalTitle.innerText = shortTitleClean;
-    
+    closeAllOpenContextMenus(); const modal = document.getElementById('previewModal'); const modalImg = document.getElementById('previewImg'); const modalVid = document.getElementById('previewVideo'); const modalAud = document.getElementById('previewAudio'); const modalTitle = document.getElementById('modalMediaTitle');
+    modalImg.style.display = "none"; modalVid.style.display = "none"; modalAud.style.display = "none"; modalTitle.innerText = fileKey.split('/').pop();
     s3.getObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-        if (err) { alert("File preview load karne me dikkat aayi!"); return; }
-        const blob = new Blob([data.Body], { type: data.ContentType });
-        const blobUrl = URL.createObjectURL(blob);
-        modal.style.display = "flex";
-
-        if(isImageFile(fileKey)) {
-            modalImg.src = blobUrl; modalImg.style.display = "block";
-        } else if(isVideoFile(fileKey)) {
-            modalVid.src = blobUrl; modalVid.style.display = "block"; modalVid.load(); modalVid.play().catch(e => console.log(e));
-        } else if(isAudioFile(fileKey)) {
-            modalAud.src = blobUrl; modalAud.style.display = "block"; modalAud.load(); modalAud.play().catch(e => console.log(e));
-        } else {
-            modalTitle.innerText = shortTitleClean + " (Preview not available, download to view)";
-            modalImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path><polyline points='14 2 14 8 20 8'></polyline></svg>";
-            modalImg.style.display = "block";
-        }
+        if (err) return; const blobUrl = URL.createObjectURL(new Blob([data.Body], { type: data.ContentType })); modal.style.display = "flex";
+        if(isImageFile(fileKey)) { modalImg.src = blobUrl; modalImg.style.display = "block"; } 
+        else if(isVideoFile(fileKey)) { modalVid.src = blobUrl; modalVid.style.display = "block"; modalVid.load(); modalVid.play().catch(e=>console.log(e)); } 
+        else if(isAudioFile(fileKey)) { modalAud.src = blobUrl; modalAud.style.display = "block"; modalAud.load(); modalAud.play().catch(e=>console.log(e)); }
     });
 }
 
-function closePreview() {
-    const modalVid = document.getElementById('previewVideo');
-    const modalAud = document.getElementById('previewAudio');
-    if(modalVid) modalVid.pause(); if(modalAud) modalAud.pause();
-    document.getElementById('previewModal').style.display = "none";
-}
-
-function cancelUpload(uploadId) {
-    const request = activeUploadRequests[uploadId];
-    if (request) {
-        request.abort(); delete activeUploadRequests[uploadId];
-        const row = document.getElementById(uploadId); if (row) row.remove();
-        if (Object.keys(activeUploadRequests).length === 0) loadFiles();
-    }
-}
-
-function deleteFile(fileKey) {
-    closeAllOpenContextMenus();
-    if(Object.keys(activeUploadRequests).length > 0) { alert("Kripya pehle chal rahe uploads ko poora hone edin!"); return; }
-    if(confirm("Kya aap sach me is file ko delete karna chahte hain?")) {
-        s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-            if (err) { alert("Delete karne me error aaya!"); } 
-            else {
-                s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-                    if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
-                });
-            }
-        });
-    }
-}
+function closePreview() { document.getElementById('previewVideo').pause(); document.getElementById('previewAudio').pause(); document.getElementById('previewModal').style.display = "none"; }
+function deleteFile(fileKey) { closeAllOpenContextMenus(); if(confirm("Delete file?")) { s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err) { if (!err) syncAndRefreshLocalState(); }); } }
 
 function uploadFiles() {
-    const fileInput = document.getElementById('fileInput');
-    const files = fileInput.files;
-    if (files.length === 0) { alert("Pehle koi file select karein!"); return; }
-
-    const fileList = document.getElementById('listFiles');
-    if(fileList.innerHTML.includes('Locker khali hai')) fileList.innerHTML = '';
-
-    const folderStrategy = document.getElementById('uploadFolderTarget').value;
-    let targetPathPrefix = "";
-
-    if (folderStrategy === 'existing') {
-        const selectedExisting = document.getElementById('existingFolderSelect').value;
-        if(selectedExisting) targetPathPrefix = selectedExisting + "/";
-    } else if (folderStrategy === 'new') {
-        let rawNewFolderName = document.getElementById('newFolderNameInput').value.trim();
-        rawNewFolderName = rawNewFolderName.replace(/[\/\\?%*:|"<>. ]/g, "_");
-        if(!rawNewFolderName) { alert("Kripya naye folder ka naam sahi se dalein!"); return; }
-        targetPathPrefix = rawNewFolderName + "/";
-    } else {
-        if(currentDirectoryPath !== "") targetPathPrefix = currentDirectoryPath;
-    }
+    const fileInput = document.getElementById('fileInput'); const files = fileInput.files; if (files.length === 0) return;
+    const strategy = document.getElementById('uploadFolderTarget').value; let prefix = "";
+    if (strategy === 'existing') { prefix = document.getElementById('existingFolderSelect').value + "/"; } 
+    else if (strategy === 'new') { prefix = document.getElementById('newFolderNameInput').value.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/"; } 
+    else { if(currentDirectoryPath !== "") prefix = currentDirectoryPath; }
 
     Array.from(files).forEach((file) => {
-        const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        const cloudUploadFinalKey = targetPathPrefix + file.name;
-
-        const tempLi = document.createElement('li');
-        tempLi.className = 'file-item uploading-temp-item';
-        tempLi.id = uploadId;
-        
-        tempLi.innerHTML = `
-            <div class="file-info-zone">
-                <div class="file-thumbnail" style="color: #2563eb; font-size:11px; font-weight:bold;">LOAD</div>
-                <div class="file-name-text" style="color: #2563eb; font-weight: bold;">
-                    Uploading: ${file.name}
-                </div>
-            </div>
-            <div class="btn-group">
-                <div class="lineup-progress-container">
-                    <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
-                    <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
-                </div>
-                <button class="btn-cancel-override" id="btn_click_${uploadId}">Cancel</button>
-            </div>
-        `;
-        
-        fileList.insertBefore(tempLi, fileList.firstChild);
-
-        const targetBtn = document.getElementById('btn_click_' + uploadId);
-        if(targetBtn) {
-            targetBtn.innerText = "Cancel"; 
-            targetBtn.onclick = function() { cancelUpload(uploadId); };
-        }
-
-        const options = { queueSize: 4, partSize: 5 * 1024 * 1024 };
-
-        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: cloudUploadFinalKey, Body: file }, options, function(err, data) {
-            delete activeUploadRequests[uploadId];
-            const rowToRemove = document.getElementById(uploadId); if (rowToRemove) rowToRemove.remove();
-
-            if (err) { if(err.code !== 'RequestAbortedError') { alert("Upload failed for: " + file.name); } }
-            
-            if (Object.keys(activeUploadRequests).length === 0) {
-                document.getElementById('newFolderNameInput').value = "";
-                document.getElementById('uploadFolderTarget').value = "root";
-                toggleFolderInputStyle();
-                
-                s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-                    if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
-                });
-            }
-        });
-
-        activeUploadRequests[uploadId] = currentUploadRequest;
-
-        currentUploadRequest.on('httpUploadProgress', function(progress) {
-            const percentage = Math.round((progress.loaded / progress.total) * 100);
-            const specificBar = document.getElementById('bar_' + uploadId);
-            const specificText = document.getElementById('text_' + uploadId);
-            if(specificBar && specificText) {
-                specificBar.style.width = percentage + '%';
-                specificText.innerText = percentage + '%';
-            }
-        });
+        s3.upload({ Bucket: currentBucket, Key: prefix + file.name, Body: file }, function() { document.getElementById('newFolderNameInput').value = ""; document.getElementById('uploadFolderTarget').value = "root"; toggleFolderInputStyle(); syncAndRefreshLocalState(); });
     });
-
     fileInput.value = ''; 
 }
 
-function logout() {
-    Object.keys(activeUploadRequests).forEach(id => cancelUpload(id));
-    document.getElementById('loginSection').style.display = 'block';
-    document.getElementById('cloudInterface').style.display = 'none';
-    document.getElementById('fileManager').style.display = 'none';
-    document.getElementById('userInput').value = '';
-    document.getElementById('passInput').value = '';
-    document.getElementById('accountSelect').value = '';
-}
+function logout() { document.getElementById('loginSection').style.display = 'block'; document.getElementById('cloudInterface').style.display = 'none'; document.getElementById('fileManager').style.display = 'none'; document.getElementById('userInput').value = ''; document.getElementById('passInput').value = ''; document.getElementById('accountSelect').value = ''; }
 </script>
 </body>
 </html>
