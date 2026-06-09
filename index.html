@@ -79,8 +79,16 @@
 <div class="container" onclick="closeAllOpenContextMenus()">
     <h1 id="mainDashboardTitle">☁️ Cloud Dashboard</h1>
     
-    <div id="loginSection" style="text-align: center; padding: 20px 0;">
-        <button id="loginBtn" onclick="handleLogin()" style="max-width: 400px; font-size: 18px; padding: 15px 30px; letter-spacing: 0.5px;">Enter to Cloud Book ➔</button>
+    <div id="loginSection">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="userInput" placeholder="Username">
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="passInput" placeholder="Password">
+        </div>
+        <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
     </div>
 
     <div id="cloudInterface">
@@ -163,48 +171,15 @@
 </div>
 
 <script>
-// ALL 8 REAL STORJ KEYS LOADED IN STATIC CORE ARCHITECTURE
 const allUserKeys = {
-    "acc1": { 
-        "bucket": "ashok-cloud", 
-        "accessKey": "jusr5ddlqvk5xyns26wyif2w5jrq", 
-        "secretKey": "j22vpkj6csza2e52bw26ky473mpi5t4pdqfbaitpoydlpwqyugxja" 
-    },
-    "acc2": { 
-        "bucket": "asu-cloud", 
-        "accessKey": "jvxbcebu4snok6he7dmok3pyjyrq", 
-        "secretKey": "jyavk6iw4hrz6645k4vhnalvdnpvppfobalokxv4ugo6phu5q2lnw" 
-    },
-    "acc3": { 
-        "bucket": "chan-cloud", 
-        "accessKey": "jwwgtvo4qz5vxoddymz4cmph5msq", 
-        "secretKey": "jyeptd3nxh2i75vrhiv5bnmc7ggengbzx56utgopo63i3sfoa2tfc" 
-    },
-    "acc4": { 
-        "bucket": "ashu-cloud", 
-        "accessKey": "jxux4ytzhlrhi6u6goea4m3njfva", 
-        "secretKey": "j2tanchiz6qnjxfl7dddy7kirbo6cz3hesd3ztpmn6nl6tpzqbois" 
-    },
-    "acc5": { 
-        "bucket": "vij-cloud", 
-        "accessKey": "jxwrintkgmegs4q6g2zqlf25jw5q", 
-        "secretKey": "jzpmif27bka3h5ngar44szv43perzinv24d4hl3cbxlewycllic7a" 
-    },
-    "acc6": { 
-        "bucket": "mnt-cloud", 
-        "accessKey": "jvj43yktm5bav3xnuslk65zdlnbq", 
-        "secretKey": "jz7p6h7stybvfdyydvwbjnwgy7jvfakyvfel4h7cuanqi3xud63vo" 
-    },
-    "acc7": { 
-        "bucket": "dhn-cloud", 
-        "accessKey": "jx2cifps6y2oeccvgx7ycbbtesgq", 
-        "secretKey": "jzmvsjdutauehwrwnilbdx7qc2njyippdlcixn6i6iibfjq5hny3e" 
-    },
-    "acc8": { 
-        "bucket": "tv-cloud", 
-        "accessKey": "jvebyagnojqk4txeerui27ts6dvq", 
-        "secretKey": "jyw7bv2nousckchrkbm35c3vg3b624nvbryl4spiy4jwwbpci65mq" 
-    }
+    "acc1": { "bucket": "ashok-cloud", "accessKey": "jusr5ddlqvk5xyns26wyif2w5jrq", "secretKey": "j22vpkj6csza2e52bw26ky473mpi5t4pdqfbaitpoydlpwqyugxja" },
+    "acc2": { "bucket": "asu-cloud", "accessKey": "jvxbcebu4snok6he7dmok3pyjyrq", "secretKey": "jyavk6iw4hrz6645k4vhnalvdnpvppfobalokxv4ugo6phu5q2lnw" },
+    "acc3": { "bucket": "chan-cloud", "accessKey": "jwwgtvo4qz5vxoddymz4cmph5msq", "secretKey": "jyeptd3nxh2i75vrhiv5bnmc7ggengbzx56utgopo63i3sfoa2tfc" },
+    "acc4": { "bucket": "ashu-cloud", "accessKey": "jxux4ytzhlrhi6u6goea4m3njfva", "secretKey": "j2tanchiz6qnjxfl7dddy7kirbo6cz3hesd3ztpmn6nl6tpzqbois" },
+    "acc5": { "bucket": "vij-cloud", "accessKey": "jxwrintkgmegs4q6g2zqlf25jw5q", "secretKey": "jzpmif27bka3h5ngar44szv43perzinv24d4hl3cbxlewycllic7a" },
+    "acc6": { "bucket": "mnt-cloud", "accessKey": "jvj43yktm5bav3xnuslk65zdlnbq", "secretKey": "jz7p6h7stybvfdyydvwbjnwgy7jvfakyvfel4h7cuanqi3xud63vo" },
+    "acc7": { "bucket": "dhn-cloud", "accessKey": "jx2cifps6y2oeccvgx7ycbbtesgq", "secretKey": "jzmvsjdutauehwrwnilbdx7qc2njyippdlcixn6i6iibfjq5hny3e" },
+    "acc8": { "bucket": "tv-cloud", "accessKey": "jvebyagnojqk4txeerui27ts6dvq", "secretKey": "jyw7bv2nousckchrkbm35c3vg3b624nvbryl4spiy4jwwbpci65mq" }
 };
 
 let s3;
@@ -225,11 +200,21 @@ window.onload = function() {
     forceApplyTextChanges();
 };
 
-// ZERO DEPENDENCY DIRECT ENTRY HANDLER
+// YAHAN AAPKA ASLI USERNAME AUR PASSWORD SET HAI BHAI
 function handleLogin() {
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('cloudInterface').style.display = 'block';
-    forceApplyTextChanges();
+    const user = document.getElementById('userInput').value.trim();
+    const pass = document.getElementById('passInput').value.trim();
+
+    if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
+
+    // Matches strictly with your real database record
+    if (user === "bookismy" && pass === "Cloud8960ismy") {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('cloudInterface').style.display = 'block';
+        forceApplyTextChanges();
+    } else {
+        alert("Username ya Password galat hai!");
+    }
 }
 
 function switchAccount() {
@@ -324,7 +309,7 @@ function switchFilterTab(tabType) {
 function loadFiles() {
     if (Object.keys(activeUploadRequests).length > 0) return;
     s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
-        if (err) { alert("Storj connect karne me error aaya! Chabi block ho gayi hai."); return; }
+        if (err) { alert("Storj connect karne me error aaya!"); return; }
         localFilesCachedMemoryList = data.Contents || [];
         renderFilesFromCache();
     });
@@ -664,6 +649,9 @@ function uploadFiles() {
     const files = fileInput.files;
     if (files.length === 0) { alert("Pehle koi file select karein!"); return; }
 
+    const fileList = document.getElementById('listFiles');
+    if(fileList.innerHTML.includes('Locker khali hai')) fileList.innerHTML = '';
+
     const folderStrategy = document.getElementById('uploadFolderTarget').value;
     let targetPathPrefix = "";
 
@@ -679,9 +667,42 @@ function uploadFiles() {
 
     Array.from(files).forEach((file) => {
         const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        s3.upload({ Bucket: currentBucket, Key: targetPathPrefix + file.name, Body: file }, function(err, data) {
+        const cloudUploadFinalKey = targetPathPrefix + file.name;
+
+        const tempLi = document.createElement('li');
+        tempLi.className = 'file-item uploading-temp-item';
+        tempLi.id = uploadId;
+        
+        tempLi.innerHTML = `
+            <div class="file-info-zone">
+                <div class="file-thumbnail" style="color: #2563eb; font-size:11px; font-weight:bold;">LOAD</div>
+                <div class="file-name-text" style="color: #2563eb; font-weight: bold;">
+                    Uploading: ${file.name}
+                </div>
+            </div>
+            <div class="btn-group" style="display:flex; align-items:center;">
+                <div class="lineup-progress-container">
+                    <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
+                    <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
+                </div>
+                <button class="btn-cancel-override" id="btn_click_${uploadId}">Cancel</button>
+            </div>
+        `;
+        
+        fileList.insertBefore(tempLi, fileList.firstChild);
+
+        const targetBtn = document.getElementById('btn_click_' + uploadId);
+        if(targetBtn) {
+            targetBtn.innerText = "Cancel"; 
+            targetBtn.onclick = function() { cancelUpload(uploadId); };
+        }
+
+        const options = { queueSize: 4, partSize: 5 * 1024 * 1024 };
+
+        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: cloudUploadFinalKey, Body: file }, options, function(err, data) {
             delete activeUploadRequests[uploadId];
             const rowToRemove = document.getElementById(uploadId); if (rowToRemove) rowToRemove.remove();
+
             if (Object.keys(activeUploadRequests).length === 0) {
                 document.getElementById('newFolderNameInput').value = "";
                 document.getElementById('uploadFolderTarget').value = "root";
@@ -691,7 +712,20 @@ function uploadFiles() {
                 });
             }
         });
+
+        activeUploadRequests[uploadId] = currentUploadRequest;
+
+        currentUploadRequest.on('httpUploadProgress', function(progress) {
+            const percentage = Math.round((progress.loaded / progress.total) * 100);
+            const specificBar = document.getElementById('bar_' + uploadId);
+            const specificText = document.getElementById('text_' + uploadId);
+            if(specificBar && specificText) {
+                specificBar.style.width = percentage + '%';
+                specificText.innerText = percentage + '%';
+            }
+        });
     });
+
     fileInput.value = ''; 
 }
 
@@ -699,6 +733,8 @@ function logout() {
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
+    document.getElementById('userInput').value = '';
+    document.getElementById('passInput').value = '';
     document.getElementById('accountSelect').value = '';
 }
 </script>
