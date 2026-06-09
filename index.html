@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Book</title>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1400.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
@@ -164,57 +163,41 @@
 </div>
 
 <script>
-const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
-const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
+// BULLETPROOF STATIC STORAGE MAP FOR DECOUPLING SUPABASE DOWNTIME RISKS PERMANENT
+const allUserKeys = {
+    "acc1": { "bucket": "ashok-cloud", "accessKey": "0057ec09e73b22b0000000001", "secretKey": "00539ba4fa5f5ca98380dbca08aeb41" },
+    "acc2": { "bucket": "bucket-naam-2", "accessKey": "key-2", "secretKey": "secret-2" },
+    "acc3": { "bucket": "bucket-naam-3", "accessKey": "key-3", "secretKey": "secret-3" },
+    "acc4": { "bucket": "bucket-naam-4", "accessKey": "key-4", "secretKey": "secret-4" },
+    "acc5": { "bucket": "bucket-naam-5", "accessKey": "key-5", "secretKey": "secret-5" },
+    "acc6": { "bucket": "bucket-naam-6", "accessKey": "key-6", "secretKey": "secret-6" },
+    "acc7": { "bucket": "bucket-naam-7", "accessKey": "key-7", "secretKey": "secret-7" },
+    "acc8": { "bucket": "bucket-naam-8", "accessKey": "key-8", "secretKey": "secret-8" }
+};
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let s3;
 let currentBucket;
-let allUserKeys = {}; 
 let activeUploadRequests = {}; 
-
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
 let localFilesCachedMemoryList = []; 
 let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
-    const mainTitle = document.getElementById('mainDashboardTitle');
-    const welcome = document.getElementById('welcomeText');
-    const labelBook = document.getElementById('selectBookLabel');
-    
-    if(mainTitle) mainTitle.innerHTML = "☁️ Cloud Dashboard";
-    if(welcome) welcome.innerHTML = "Welcome !";
-    if(labelBook) labelBook.innerHTML = "Select Your Book";
+    document.getElementById('mainDashboardTitle').innerHTML = "☁️ Cloud Dashboard";
+    document.getElementById('welcomeText').innerHTML = "Welcome !";
+    document.getElementById('selectBookLabel').innerHTML = "Select Your Book";
 }
 
 window.onload = function() {
     forceApplyTextChanges();
 };
 
-// ZERO-INPUT EXPRESS HANDSHAKE LOGIC
-async function handleLogin() {
-    const loginButton = document.getElementById('loginBtn');
-    loginButton.innerText = "Connecting... ⏳";
-    loginButton.disabled = true;
-
-    // Direct stream fetch request targeting the user record data block
-    const { data, error } = await supabaseClient
-        .from('cloud_users')
-        .select('*');
-
-    if (error || !data || data.length === 0) {
-        alert("Database connection error! Please make sure your Supabase dashboard is live.");
-        loginButton.innerText = "Enter to Cloud Book ➔";
-        loginButton.disabled = false;
-        console.error(error);
-    } else {
-        // Successful frictionless entry - loads all 8 books mapping directly
-        allUserKeys = data[0].storj_keys;
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('cloudInterface').style.display = 'block';
-        forceApplyTextChanges();
-    }
+// IMMEDIATE LOCALIZED RESPONSE ENGINE WITH NO NETWORK DROPS
+function handleLogin() {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('cloudInterface').style.display = 'block';
+    forceApplyTextChanges();
 }
 
 function switchAccount() {
@@ -225,10 +208,6 @@ function switchAccount() {
     }
 
     const accDetails = allUserKeys[selectedAcc];
-    if (!accDetails) {
-        alert("Error: Keys matching not found in database schema!");
-        return;
-    }
     currentBucket = accDetails.bucket;
 
     AWS.config.update({
@@ -291,7 +270,6 @@ function isImageFile(fileName) {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
 }
 
-// Map file types over video assets extension filters
 function isVideoFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext);
@@ -344,7 +322,7 @@ function runRenameEngine(oldKey, isFolder = false) {
     let newKey = "";
     if(isFolder) {
         newKey = newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/";
-        renameFolderObjectsRecursive(oldFolderPrefix, newFolderPrefix);
+        renameFolderObjectsRecursive(oldKey, newKey);
     } else {
         const pathParts = oldKey.split('/');
         pathParts[pathParts.length - 1] = newName.trim();
@@ -690,9 +668,6 @@ function logout() {
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
     document.getElementById('accountSelect').value = '';
-    const loginButton = document.getElementById('loginBtn');
-    loginButton.innerText = "Enter to Cloud Book ➔";
-    loginButton.disabled = false;
 }
 </script>
 </body>
