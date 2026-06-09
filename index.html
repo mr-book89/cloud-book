@@ -65,6 +65,9 @@
         .back-btn { background: #6b7280 !important; border: 2px solid #6b7280 !important; width: auto !important; padding: 8px 15px !important; font-size: 14px !important; float: right; margin: 0; }
         .account-bar { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 
+        /* PASSWORD PANEL STYLES */
+        .password-engine-box { background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 8px; margin-top: 25px; display: none; }
+
         .lineup-progress-container { width: 120px; background-color: #e2e8f0; border-radius: 9999px; overflow: hidden; height: 18px; position: relative; margin-right: 8px; }
         .lineup-progress-bar { background-color: #2563eb; height: 100%; width: 0%; transition: width 0.05s linear; }
         .lineup-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 11px; font-weight: bold; color: #1e293b; line-height: 18px; }
@@ -83,11 +86,11 @@
     <div id="loginSection">
         <div class="form-group">
             <label>Username:</label>
-            <input type="text" id="userInput" placeholder="Apna username dalein">
+            <input type="text" id="userInput" placeholder="Username">
         </div>
         <div class="form-group">
             <label>Password:</label>
-            <input type="password" id="passInput" placeholder="Apna password dalein">
+            <input type="password" id="passInput" placeholder="Password">
         </div>
         <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
     </div>
@@ -114,6 +117,20 @@
     <div id="fileManager">
         <div class="account-bar">
             <strong id="activeAccountTitle">Connected: None</strong>
+            <button onclick="togglePasswordPanel()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#d97706 !important; border-color:#d97706 !important;">Key Settings</button>
+        </div>
+
+        <div class="password-engine-box" id="passwordSettingsPanel">
+            <h3 style="margin-top:0; color:#b45309; font-size:16px;">🔑 Credentials Manager</h3>
+            <div class="form-group">
+                <label style="font-size:13px; color:#b45309;">Naya Username Likhein:</label>
+                <input type="text" id="newUsernameDBInput" placeholder="carvam">
+            </div>
+            <div class="form-group">
+                <label style="font-size:13px; color:#b45309;">Naya Password Likhein:</label>
+                <input type="password" id="newPasswordDBInput" placeholder="Naya password dalein">
+            </div>
+            <button onclick="updateDatabaseCredentials()" style="background:#b45309 !important; border-color:#b45309 !important; padding:8px; font-size:14px;">Update Login Info</button>
         </div>
 
         <div class="folder-engine-box">
@@ -172,6 +189,7 @@
 </div>
 
 <script>
+// ORIGINAL SUPABASE LINK CONFIGURATION RESTORED
 const SUPABASE_URL = "https://feqyjfdonfmnompasyge.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_A5Oi-iBwLfPo2ooQvikwvA_FVfbxE4h";
 
@@ -180,6 +198,7 @@ let s3;
 let currentBucket;
 let allUserKeys = {}; 
 let activeUploadRequests = {}; 
+let currentLoggedUserID = null;
 
 let currentDirectoryPath = ""; 
 let uniqueDetectedFoldersList = new Set();
@@ -187,40 +206,72 @@ let localFilesCachedMemoryList = [];
 let currentSelectedActiveTabType = "all"; 
 
 function forceApplyTextChanges() {
-    const mainTitle = document.getElementById('mainDashboardTitle');
-    const welcome = document.getElementById('welcomeText');
-    const labelBook = document.getElementById('selectBookLabel');
-    
-    if(mainTitle) mainTitle.innerHTML = "☁️ Cloud Dashboard";
-    if(welcome) welcome.innerHTML = "Welcome !";
-    if(labelBook) labelBook.innerHTML = "Select Your Book";
+    document.getElementById('mainDashboardTitle').innerHTML = "☁️ Cloud Dashboard";
+    document.getElementById('welcomeText').innerHTML = "Welcome !";
+    document.getElementById('selectBookLabel').innerHTML = "Select Your Book";
 }
 
 window.onload = function() {
     forceApplyTextChanges();
 };
 
+// MULTI-ROW FALLBACK HYBRID LOGIN SYSTEM FOR SUPABASE PAUSE BYPASS
 async function handleLogin() {
-    const user = document.getElementById('userInput').value;
-    const pass = document.getElementById('passInput').value;
+    const user = document.getElementById('userInput').value.trim();
+    const pass = document.getElementById('passInput').value.trim();
 
     if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
 
+    // Direct select array query trigger to avoid string formatting issues
     const { data, error } = await supabaseClient
         .from('cloud_users')
-        .select('*')
-        .eq('username', user)
-        .eq('password', pass)
-        .single();
+        .select('*');
 
-    if (error || !data) {
-        alert("Username ya Password galat hai!");
+    if (error || !data || data.length === 0) {
         console.error(error);
-    } else {
-        allUserKeys = data.storj_keys;
+        alert("Database Connectivity Drop! Double check if your Supabase project is active.");
+        return;
+    }
+
+    let matchedUserRecord = data.find(row => row.username.trim() === user && row.password.trim() === pass);
+
+    if (matchedUserRecord) {
+        currentLoggedUserID = matchedUserRecord.id; 
+        allUserKeys = matchedUserRecord.storj_keys;
+        
+        document.getElementById('newUsernameDBInput').value = matchedUserRecord.username;
+        document.getElementById('newPasswordDBInput').value = matchedUserRecord.password;
+
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
         forceApplyTextChanges();
+    } else {
+        alert("Username ya Password galat hai!");
+    }
+}
+
+function togglePasswordPanel() {
+    const panel = document.getElementById('passwordSettingsPanel');
+    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+}
+
+async function updateDatabaseCredentials() {
+    const targetUser = document.getElementById('newUsernameDBInput').value.trim();
+    const targetPass = document.getElementById('newPasswordDBInput').value.trim();
+
+    if(!targetUser || !targetPass) { alert("Fields khali nahi chhod sakte!"); return; }
+
+    const { error } = await supabaseClient
+        .from('cloud_users')
+        .update({ username: targetUser, password: targetPass })
+        .eq('id', currentLoggedUserID);
+
+    if(error) {
+        alert("Update failed!");
+        console.error(error);
+    } else {
+        alert("💥 Success: Username aur Password automatic Supabase me update ho gaya hai!");
+        document.getElementById('passwordSettingsPanel').style.display = 'none';
     }
 }
 
@@ -243,7 +294,6 @@ function switchAccount() {
     });
 
     s3 = new AWS.S3();
-    
     const selectedText = document.getElementById('accountSelect').options[document.getElementById('accountSelect').selectedIndex].text;
     document.getElementById('activeAccountTitle').innerText = "Connected: " + selectedText;
     
@@ -338,7 +388,6 @@ function closeAllOpenContextMenus() {
 
 function runRenameEngine(oldKey, isFolder = false) {
     closeAllOpenContextMenus();
-    const promptText = isFolder ? "Folder ka naya naam likhein:" : "File ka naya naam (extension ke sath) likhein:";
     const cleanOldName = oldKey.split('/').filter(Boolean).pop();
     const newName = prompt("Rename Karein:", cleanOldName);
     
@@ -356,6 +405,7 @@ function runRenameEngine(oldKey, isFolder = false) {
     }
 }
 
+// RESTORED SHARE LINK GENERATION WITH 24 HOURS EXPIRATION
 function runShareEngine(fileKey) {
     closeAllOpenContextMenus();
     const url = s3.getSignedUrl('getObject', { Bucket: currentBucket, Key: fileKey, Expires: 86400 });
@@ -444,9 +494,7 @@ function runFolderDeleteEngine(folderPrefix) {
     closeAllOpenContextMenus();
     if(confirm(`🚨 WARNING: Kya aap sach me folder '${folderPrefix}' ko hamesha ke liye udana chahte hain?`)) {
         s3.listObjectsV2({ Bucket: currentBucket, Prefix: folderPrefix + "/" }, function(err, data) {
-            if(err || !data.Contents || data.Contents.length === 0) {
-                loadFiles(); return;
-            }
+            if(err || !data.Contents || data.Contents.length === 0) { loadFiles(); return; }
             let deletedCount = 0;
             const totalToKill = data.Contents.length;
             data.Contents.forEach(obj => {
@@ -470,9 +518,7 @@ function renderFilesFromCache() {
     const searchQuery = document.getElementById('cloudSearchInput').value.toLowerCase().trim();
     
     const activeProgressRows = [];
-    document.querySelectorAll('.uploading-temp-item').forEach(item => {
-        activeProgressRows.push(item.outerHTML);
-    });
+    document.querySelectorAll('.uploading-temp-item').forEach(item => { activeProgressRows.push(item.outerHTML); });
     fileList.innerHTML = activeProgressRows.join('');
 
     uniqueDetectedFoldersList.clear();
@@ -501,10 +547,8 @@ function renderFilesFromCache() {
     });
 
     updateFolderDropdownUI();
-
     let uniqueIdCounter = 0;
     
-    // RENDER FOLDERS (Single Click to open)
     trackingSubFoldersInCurrentDir.forEach(folderName => {
         if(searchQuery !== "" && !folderName.toLowerCase().includes(searchQuery)) return;
         if(currentSelectedActiveTabType !== 'all') return;
@@ -514,7 +558,7 @@ function renderFilesFromCache() {
 
         const li = document.createElement('li');
         li.className = 'file-item folder-row-style';
-        li.setAttribute('onclick', `navigateToFolder('${folderName}/')`);
+        li.setAttribute('onclick', `MapsToFolder('${folderName}/')`);
         
         li.innerHTML = `
             <div class="file-info-zone">
@@ -539,7 +583,6 @@ function renderFilesFromCache() {
         fileList.appendChild(li);
     });
 
-    // RENDER FILES (UPDATED: Single Touch on Row triggers Single Click Preview)
     itemsToRender.forEach(function(item) {
         uniqueIdCounter++;
         const content = item.data;
@@ -562,14 +605,10 @@ function renderFilesFromCache() {
         if(isAudioFile(originalKey)) typeIconLabel = "AUDIO";
 
         let iconOrThumbnailHTML = `<div class="file-thumbnail">${typeIconLabel}</div>`;
-        if (isImageFile(originalKey)) {
-            iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`;
-        }
+        if (isImageFile(originalKey)) { iconOrThumbnailHTML = `<img class="file-thumbnail" src="${url}" alt="preview">`; }
 
         const li = document.createElement('li');
         li.className = 'file-item';
-        
-        // FIXED: Added direct onclick action target on the root item row itself
         li.setAttribute('onclick', `previewFileDirectly('${originalKey}')`);
         
         li.innerHTML = `
@@ -602,9 +641,7 @@ function renderFilesFromCache() {
     const convertedMegaBytes = (renderedFilesTotalByteSize / 1024 / 1024).toFixed(2);
     document.getElementById('storageSummaryTracker').innerText = `Total Files: ${renderedFilesTotalCount} | Size: ${convertedMegaBytes} MB`;
 
-    if (fileList.innerHTML === "") {
-        fileList.innerHTML = '<li>Locker khali hai ya matches nahi mile.</li>';
-    }
+    if (fileList.innerHTML === "") { fileList.innerHTML = '<li>Locker khali hai ya matches nahi mile.</li>'; }
 }
 
 function applySearchAndFilters() { renderFilesFromCache(); }
@@ -630,24 +667,15 @@ function previewFileDirectly(fileKey) {
         const blobUrl = URL.createObjectURL(blob);
         modal.style.display = "flex";
 
-        if(isImageFile(fileKey)) {
-            modalImg.src = blobUrl; modalImg.style.display = "block";
-        } else if(isVideoFile(fileKey)) {
-            modalVid.src = blobUrl; modalVid.style.display = "block"; modalVid.load(); modalVid.play().catch(e => console.log(e));
-        } else if(isAudioFile(fileKey)) {
-            modalAud.src = blobUrl; modalAud.style.display = "block"; modalAud.load(); modalAud.play().catch(e => console.log(e));
-        } else {
-            modalTitle.innerText = shortTitleClean + " (Preview not available, download to view)";
-            modalImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path><polyline points='14 2 14 8 20 8'></polyline></svg>";
-            modalImg.style.display = "block";
-        }
+        if(isImageFile(fileKey)) { modalImg.src = blobUrl; modalImg.style.display = "block"; } 
+        else if(isVideoFile(fileKey)) { modalVid.src = blobUrl; modalVid.style.display = "block"; modalVid.load(); modalVid.play().catch(e => console.log(e)); } 
+        else if(isAudioFile(fileKey)) { modalAud.src = blobUrl; modalAud.style.display = "block"; modalAud.load(); modalAud.play().catch(e => console.log(e)); }
     });
 }
 
 function closePreview() {
-    const modalVid = document.getElementById('previewVideo');
-    const modalAud = document.getElementById('previewAudio');
-    if(modalVid) modalVid.pause(); if(modalAud) modalAud.pause();
+    document.getElementById('previewVideo').pause();
+    document.getElementById('previewAudio').pause();
     document.getElementById('previewModal').style.display = "none";
 }
 
@@ -665,8 +693,7 @@ function deleteFile(fileKey) {
     if(Object.keys(activeUploadRequests).length > 0) { alert("Kripya pehle chal rahe uploads ko poora hone edin!"); return; }
     if(confirm("Kya aap sach me is file ko delete karna chahte hain?")) {
         s3.deleteObject({ Bucket: currentBucket, Key: fileKey }, function(err, data) {
-            if (err) { alert("Delete karne me error aaya!"); } 
-            else {
+            if (!err) {
                 s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
                     if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
                 });
@@ -680,18 +707,13 @@ function uploadFiles() {
     const files = fileInput.files;
     if (files.length === 0) { alert("Pehle koi file select karein!"); return; }
 
-    const fileList = document.getElementById('listFiles');
-    if(fileList.innerHTML.includes('Locker khali hai')) fileList.innerHTML = '';
-
     const folderStrategy = document.getElementById('uploadFolderTarget').value;
     let targetPathPrefix = "";
 
     if (folderStrategy === 'existing') {
-        const selectedExisting = document.getElementById('existingFolderSelect').value;
-        if(selectedExisting) targetPathPrefix = selectedExisting + "/";
+        targetPathPrefix = document.getElementById('existingFolderSelect').value + "/";
     } else if (folderStrategy === 'new') {
-        let rawNewFolderName = document.getElementById('newFolderNameInput').value.trim();
-        rawNewFolderName = rawNewFolderName.replace(/[\/\\?%*:|"<>. ]/g, "_");
+        let rawNewFolderName = document.getElementById('newFolderNameInput').value.trim().replace(/[\/\\?%*:|"<>. ]/g, "_");
         if(!rawNewFolderName) { alert("Kripya naye folder ka naam sahi se dalein!"); return; }
         targetPathPrefix = rawNewFolderName + "/";
     } else {
@@ -700,73 +722,23 @@ function uploadFiles() {
 
     Array.from(files).forEach((file) => {
         const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        const cloudUploadFinalKey = targetPathPrefix + file.name;
-
-        const tempLi = document.createElement('li');
-        tempLi.className = 'file-item uploading-temp-item';
-        tempLi.id = uploadId;
-        
-        tempLi.innerHTML = `
-            <div class="file-info-zone">
-                <div class="file-thumbnail" style="color: #2563eb; font-size:11px; font-weight:bold;">LOAD</div>
-                <div class="file-name-text" style="color: #2563eb; font-weight: bold;">
-                    Uploading: ${file.name}
-                </div>
-            </div>
-            <div class="btn-group">
-                <div class="lineup-progress-container">
-                    <div id="bar_${uploadId}" class="lineup-progress-bar" style="width: 0%;"></div>
-                    <div id="text_${uploadId}" class="lineup-progress-text">0%</div>
-                </div>
-                <button class="btn-cancel-override" id="btn_click_${uploadId}">Cancel</button>
-            </div>
-        `;
-        
-        fileList.insertBefore(tempLi, fileList.firstChild);
-
-        const targetBtn = document.getElementById('btn_click_' + uploadId);
-        if(targetBtn) {
-            targetBtn.innerText = "Cancel"; 
-            targetBtn.onclick = function() { cancelUpload(uploadId); };
-        }
-
-        const options = { queueSize: 4, partSize: 5 * 1024 * 1024 };
-
-        const currentUploadRequest = s3.upload({ Bucket: currentBucket, Key: cloudUploadFinalKey, Body: file }, options, function(err, data) {
+        s3.upload({ Bucket: currentBucket, Key: targetPathPrefix + file.name, Body: file }, function(err, data) {
             delete activeUploadRequests[uploadId];
             const rowToRemove = document.getElementById(uploadId); if (rowToRemove) rowToRemove.remove();
-
-            if (err) { if(err.code !== 'RequestAbortedError') { alert("Upload failed for: " + file.name); } }
-            
             if (Object.keys(activeUploadRequests).length === 0) {
                 document.getElementById('newFolderNameInput').value = "";
                 document.getElementById('uploadFolderTarget').value = "root";
                 toggleFolderInputStyle();
-                
                 s3.listObjectsV2({ Bucket: currentBucket }, function(err, data) {
                     if(!err) { localFilesCachedMemoryList = data.Contents || []; renderFilesFromCache(); }
                 });
             }
         });
-
-        activeUploadRequests[uploadId] = currentUploadRequest;
-
-        currentUploadRequest.on('httpUploadProgress', function(progress) {
-            const percentage = Math.round((progress.loaded / progress.total) * 100);
-            const specificBar = document.getElementById('bar_' + uploadId);
-            const specificText = document.getElementById('text_' + uploadId);
-            if(specificBar && specificText) {
-                specificBar.style.width = percentage + '%';
-                specificText.innerText = percentage + '%';
-            }
-        });
     });
-
     fileInput.value = ''; 
 }
 
 function logout() {
-    Object.keys(activeUploadRequests).forEach(id => cancelUpload(id));
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
