@@ -80,16 +80,8 @@
 <div class="container" onclick="closeAllOpenContextMenus()">
     <h1 id="mainDashboardTitle">☁️ Cloud Dashboard</h1>
     
-    <div id="loginSection">
-        <div class="form-group">
-            <label>Username:</label>
-            <input type="text" id="userInput" placeholder="Username">
-        </div>
-        <div class="form-group">
-            <label>Password:</label>
-            <input type="password" id="passInput" placeholder="Password">
-        </div>
-        <button id="loginBtn" onclick="handleLogin()">Login to Cloud</button>
+    <div id="loginSection" style="text-align: center; padding: 20px 0;">
+        <button id="loginBtn" onclick="handleLogin()" style="max-width: 400px; font-size: 18px; padding: 15px 30px; letter-spacing: 0.5px;">Enter to Cloud Book ➔</button>
     </div>
 
     <div id="cloudInterface">
@@ -200,25 +192,24 @@ window.onload = function() {
     forceApplyTextChanges();
 };
 
-// ADVANCED DYNAMIC VERIFICATION PIPELINE WITHOUT PACKET LOSS
+// ZERO-INPUT EXPRESS HANDSHAKE LOGIC
 async function handleLogin() {
-    const user = document.getElementById('userInput').value.trim();
-    const pass = document.getElementById('passInput').value.trim();
+    const loginButton = document.getElementById('loginBtn');
+    loginButton.innerText = "Connecting... ⏳";
+    loginButton.disabled = true;
 
-    if(!user || !pass) { alert("Dono fields bharna zaroori hai!"); return; }
-
-    // Direct explicit verification request endpoint
+    // Direct stream fetch request targeting the user record data block
     const { data, error } = await supabaseClient
         .from('cloud_users')
-        .select('*')
-        .eq('username', user)
-        .eq('password', pass);
+        .select('*');
 
     if (error || !data || data.length === 0) {
-        alert("Username ya Password galat hai!");
+        alert("Database connection error! Please make sure your Supabase dashboard is live.");
+        loginButton.innerText = "Enter to Cloud Book ➔";
+        loginButton.disabled = false;
         console.error(error);
     } else {
-        // Grab the precise record object dynamically to restore all 8 keys mapped inside JSON
+        // Successful frictionless entry - loads all 8 books mapping directly
         allUserKeys = data[0].storj_keys;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('cloudInterface').style.display = 'block';
@@ -235,7 +226,7 @@ function switchAccount() {
 
     const accDetails = allUserKeys[selectedAcc];
     if (!accDetails) {
-        alert("Error: Is Book account ki keys database configuration me nahi mili!");
+        alert("Error: Keys matching not found in database schema!");
         return;
     }
     currentBucket = accDetails.bucket;
@@ -300,6 +291,7 @@ function isImageFile(fileName) {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
 }
 
+// Map file types over video assets extension filters
 function isVideoFile(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     return ['mp4', 'mkv', 'webm', 'avi', 'mov'].includes(ext);
@@ -352,7 +344,7 @@ function runRenameEngine(oldKey, isFolder = false) {
     let newKey = "";
     if(isFolder) {
         newKey = newName.trim().replace(/[\/\\?%*:|"<>. ]/g, "_") + "/";
-        renameFolderObjectsRecursive(oldKey, newKey);
+        renameFolderObjectsRecursive(oldFolderPrefix, newFolderPrefix);
     } else {
         const pathParts = oldKey.split('/');
         pathParts[pathParts.length - 1] = newName.trim();
@@ -697,9 +689,10 @@ function logout() {
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('cloudInterface').style.display = 'none';
     document.getElementById('fileManager').style.display = 'none';
-    document.getElementById('userInput').value = '';
-    document.getElementById('passInput').value = '';
     document.getElementById('accountSelect').value = '';
+    const loginButton = document.getElementById('loginBtn');
+    loginButton.innerText = "Enter to Cloud Book ➔";
+    loginButton.disabled = false;
 }
 </script>
 </body>
